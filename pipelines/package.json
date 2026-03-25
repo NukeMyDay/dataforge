@@ -14,7 +14,9 @@
     "@dataforge/shared": "workspace:*",
     "cheerio": "^1.0.0",
     "pg-boss": "^9.0.0",
-    "playwright": "^1.43.0"
+    "playwright": "^1.43.0",
+    "zod": "^3.22.0",
+    "drizzle-orm": "^0.30.0"
   },
   "devDependencies": {
     "tsx": "^4.7.0",

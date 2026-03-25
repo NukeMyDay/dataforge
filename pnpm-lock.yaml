@@ -68,12 +68,18 @@ importers:
       cheerio:
         specifier: ^1.0.0
         version: 1.2.0
+      drizzle-orm:
+        specifier: ^0.30.0
+        version: 0.30.10(pg@8.20.0)(postgres@3.4.8)
       pg-boss:
         specifier: ^9.0.0
         version: 9.0.3
       playwright:
         specifier: ^1.43.0
         version: 1.58.2
+      zod:
+        specifier: ^3.22.0
+        version: 3.25.76
     devDependencies:
       tsx:
         specifier: ^4.7.0
