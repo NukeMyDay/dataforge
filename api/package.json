@@ -14,10 +14,10 @@
     "@dataforge/db": "workspace:*",
     "@dataforge/shared": "workspace:*",
     "hono": "^4.2.0",
-    "zod": "^3.22.0"
-  },
-  "devDependencies": {
-    "tsx": "^4.7.0",
-    "typescript": "^5.4.0"
+    "zod": "^3.22.0",
+    "drizzle-orm": "^0.30.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0"
   }
 }
