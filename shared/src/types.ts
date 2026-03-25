@@ -27,9 +27,28 @@ export interface Program {
   tuitionFeeEur: number | null;
   sourceUrl: string | null;
   country: string;
+  descriptionDe: string | null;
+  descriptionEn: string | null;
+  descriptionNl: string | null;
+  ects: number | null;
+  fieldOfStudy: string | null;
+  iscedCode: string | null;
+  applicationDeadlineEu: Date | null;
+  applicationDeadlineNonEu: Date | null;
+  /** JSON array of date strings, e.g. ["2025-09-01","2026-02-01"] */
+  startDates: string | null;
+  /** JSON object, e.g. {"ielts": "6.5", "toefl": "90"} */
+  languageRequirements: string | null;
+  tuitionFeeNonEuEur: number | null;
+  numerusClausus: boolean | null;
+  admissionRequirements: string | null;
+  isActive: boolean | null;
+  slug: string;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type InstitutionType = "university" | "university_of_applied_sciences" | "college";
 
 export interface Institution {
   id: number;
@@ -40,6 +59,12 @@ export interface Institution {
   city: string | null;
   websiteUrl: string | null;
   accreditationStatus: string | null;
+  type: InstitutionType | null;
+  logoUrl: string | null;
+  rankingPosition: number | null;
+  descriptionDe: string | null;
+  descriptionEn: string | null;
+  slug: string;
   createdAt: Date;
   updatedAt: Date;
 }

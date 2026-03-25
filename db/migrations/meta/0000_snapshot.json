@@ -1,0 +1,221 @@
+{
+  "version": "6",
+  "dialect": "postgresql",
+  "id": "0000_initial_schema",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "institutions": {
+      "name": "institutions",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "name_de": { "name": "name_de", "type": "text", "primaryKey": false, "notNull": false },
+        "name_en": { "name": "name_en", "type": "text", "primaryKey": false, "notNull": false },
+        "name_nl": { "name": "name_nl", "type": "text", "primaryKey": false, "notNull": false },
+        "country": { "name": "country", "type": "varchar(2)", "primaryKey": false, "notNull": true },
+        "city": { "name": "city", "type": "text", "primaryKey": false, "notNull": false },
+        "website_url": { "name": "website_url", "type": "text", "primaryKey": false, "notNull": false },
+        "accreditation_status": { "name": "accreditation_status", "type": "varchar(64)", "primaryKey": false, "notNull": false },
+        "type": { "name": "type", "type": "varchar(64)", "primaryKey": false, "notNull": false },
+        "logo_url": { "name": "logo_url", "type": "text", "primaryKey": false, "notNull": false },
+        "ranking_position": { "name": "ranking_position", "type": "integer", "primaryKey": false, "notNull": false },
+        "description_de": { "name": "description_de", "type": "text", "primaryKey": false, "notNull": false },
+        "description_en": { "name": "description_en", "type": "text", "primaryKey": false, "notNull": false },
+        "slug": { "name": "slug", "type": "varchar(256)", "primaryKey": false, "notNull": true },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
+        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "institutions_slug_unique": { "name": "institutions_slug_unique", "nullsNotDistinct": false, "columns": ["slug"] }
+      }
+    },
+    "programs": {
+      "name": "programs",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "institution_id": { "name": "institution_id", "type": "integer", "primaryKey": false, "notNull": true },
+        "title_de": { "name": "title_de", "type": "text", "primaryKey": false, "notNull": false },
+        "title_en": { "name": "title_en", "type": "text", "primaryKey": false, "notNull": false },
+        "title_nl": { "name": "title_nl", "type": "text", "primaryKey": false, "notNull": false },
+        "degree_type": { "name": "degree_type", "type": "varchar(64)", "primaryKey": false, "notNull": true },
+        "duration_months": { "name": "duration_months", "type": "integer", "primaryKey": false, "notNull": false },
+        "language": { "name": "language", "type": "varchar(16)", "primaryKey": false, "notNull": false },
+        "delivery_mode": { "name": "delivery_mode", "type": "varchar(32)", "primaryKey": false, "notNull": false },
+        "tuition_fee_eur": { "name": "tuition_fee_eur", "type": "numeric(10, 2)", "primaryKey": false, "notNull": false },
+        "source_url": { "name": "source_url", "type": "text", "primaryKey": false, "notNull": false },
+        "country": { "name": "country", "type": "varchar(2)", "primaryKey": false, "notNull": true },
+        "description_de": { "name": "description_de", "type": "text", "primaryKey": false, "notNull": false },
+        "description_en": { "name": "description_en", "type": "text", "primaryKey": false, "notNull": false },
+        "description_nl": { "name": "description_nl", "type": "text", "primaryKey": false, "notNull": false },
+        "ects": { "name": "ects", "type": "integer", "primaryKey": false, "notNull": false },
+        "field_of_study": { "name": "field_of_study", "type": "varchar(128)", "primaryKey": false, "notNull": false },
+        "isced_code": { "name": "isced_code", "type": "varchar(16)", "primaryKey": false, "notNull": false },
+        "application_deadline_eu": { "name": "application_deadline_eu", "type": "timestamp with time zone", "primaryKey": false, "notNull": false },
+        "application_deadline_non_eu": { "name": "application_deadline_non_eu", "type": "timestamp with time zone", "primaryKey": false, "notNull": false },
+        "start_dates": { "name": "start_dates", "type": "text", "primaryKey": false, "notNull": false },
+        "language_requirements": { "name": "language_requirements", "type": "text", "primaryKey": false, "notNull": false },
+        "tuition_fee_non_eu_eur": { "name": "tuition_fee_non_eu_eur", "type": "numeric(10, 2)", "primaryKey": false, "notNull": false },
+        "numerus_clausus": { "name": "numerus_clausus", "type": "boolean", "primaryKey": false, "notNull": false, "default": false },
+        "admission_requirements": { "name": "admission_requirements", "type": "text", "primaryKey": false, "notNull": false },
+        "is_active": { "name": "is_active", "type": "boolean", "primaryKey": false, "notNull": false, "default": true },
+        "slug": { "name": "slug", "type": "varchar(512)", "primaryKey": false, "notNull": true },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
+        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "programs_institution_id_institutions_id_fk": {
+          "name": "programs_institution_id_institutions_id_fk",
+          "tableFrom": "programs",
+          "tableTo": "institutions",
+          "columnsFrom": ["institution_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "programs_slug_unique": { "name": "programs_slug_unique", "nullsNotDistinct": false, "columns": ["slug"] }
+      }
+    },
+    "regulations": {
+      "name": "regulations",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "slug": { "name": "slug", "type": "varchar(256)", "primaryKey": false, "notNull": true },
+        "title_de": { "name": "title_de", "type": "text", "primaryKey": false, "notNull": false },
+        "title_en": { "name": "title_en", "type": "text", "primaryKey": false, "notNull": false },
+        "category": { "name": "category", "type": "varchar(128)", "primaryKey": false, "notNull": true },
+        "jurisdiction": { "name": "jurisdiction", "type": "varchar(128)", "primaryKey": false, "notNull": true },
+        "body_de": { "name": "body_de", "type": "text", "primaryKey": false, "notNull": false },
+        "body_en": { "name": "body_en", "type": "text", "primaryKey": false, "notNull": false },
+        "source_url": { "name": "source_url", "type": "text", "primaryKey": false, "notNull": false },
+        "effective_date": { "name": "effective_date", "type": "timestamp with time zone", "primaryKey": false, "notNull": false },
+        "version": { "name": "version", "type": "integer", "primaryKey": false, "notNull": true, "default": 1 },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
+        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "regulations_slug_unique": { "name": "regulations_slug_unique", "nullsNotDistinct": false, "columns": ["slug"] }
+      }
+    },
+    "regulation_changelog": {
+      "name": "regulation_changelog",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "regulation_id": { "name": "regulation_id", "type": "integer", "primaryKey": false, "notNull": true },
+        "version": { "name": "version", "type": "integer", "primaryKey": false, "notNull": true },
+        "diff_summary_de": { "name": "diff_summary_de", "type": "text", "primaryKey": false, "notNull": false },
+        "diff_summary_en": { "name": "diff_summary_en", "type": "text", "primaryKey": false, "notNull": false },
+        "changed_at": { "name": "changed_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "regulation_changelog_regulation_id_regulations_id_fk": {
+          "name": "regulation_changelog_regulation_id_regulations_id_fk",
+          "tableFrom": "regulation_changelog",
+          "tableTo": "regulations",
+          "columnsFrom": ["regulation_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "api_keys": {
+      "name": "api_keys",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "key_hash": { "name": "key_hash", "type": "varchar(128)", "primaryKey": false, "notNull": true },
+        "label": { "name": "label", "type": "text", "primaryKey": false, "notNull": false },
+        "owner_id": { "name": "owner_id", "type": "text", "primaryKey": false, "notNull": false },
+        "scopes": { "name": "scopes", "type": "text[]", "primaryKey": false, "notNull": true, "default": "'{}'" },
+        "expires_at": { "name": "expires_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": false },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "api_keys_key_hash_unique": { "name": "api_keys_key_hash_unique", "nullsNotDistinct": false, "columns": ["key_hash"] }
+      }
+    },
+    "pipelines": {
+      "name": "pipelines",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "name": { "name": "name", "type": "varchar(128)", "primaryKey": false, "notNull": true },
+        "description": { "name": "description", "type": "text", "primaryKey": false, "notNull": false },
+        "schedule": { "name": "schedule", "type": "varchar(128)", "primaryKey": false, "notNull": false },
+        "enabled": { "name": "enabled", "type": "boolean", "primaryKey": false, "notNull": true, "default": true },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
+        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "pipelines_name_unique": { "name": "pipelines_name_unique", "nullsNotDistinct": false, "columns": ["name"] }
+      }
+    },
+    "pipeline_runs": {
+      "name": "pipeline_runs",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "pipeline_id": { "name": "pipeline_id", "type": "integer", "primaryKey": false, "notNull": true },
+        "status": { "name": "status", "type": "pipeline_status", "primaryKey": false, "notNull": true, "default": "'idle'" },
+        "started_at": { "name": "started_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": false },
+        "finished_at": { "name": "finished_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": false },
+        "records_processed": { "name": "records_processed", "type": "integer", "primaryKey": false, "notNull": false },
+        "error_message": { "name": "error_message", "type": "text", "primaryKey": false, "notNull": false },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pipeline_runs_pipeline_id_pipelines_id_fk": {
+          "name": "pipeline_runs_pipeline_id_pipelines_id_fk",
+          "tableFrom": "pipeline_runs",
+          "tableTo": "pipelines",
+          "columnsFrom": ["pipeline_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {
+    "pipeline_status": {
+      "name": "pipeline_status",
+      "values": {
+        "idle": "idle",
+        "running": "running",
+        "succeeded": "succeeded",
+        "failed": "failed"
+      }
+    }
+  },
+  "schemas": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
