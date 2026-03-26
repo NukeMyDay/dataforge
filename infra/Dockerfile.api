@@ -1,14 +1,6 @@
 FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
-FROM base AS deps
-WORKDIR /app
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
-COPY api/package.json ./api/
-COPY db/package.json ./db/
-COPY shared/package.json ./shared/
-RUN pnpm install --frozen-lockfile --prod
-
 FROM base AS build
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* tsconfig.base.json ./
@@ -20,14 +12,11 @@ RUN pnpm -r build
 
 FROM base AS runtime
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=build /app/api/dist ./api/dist
-COPY --from=build /app/db/dist ./db/dist
-COPY --from=build /app/shared/dist ./shared/dist
-COPY --from=build /app/api/package.json ./api/
-COPY --from=build /app/db/package.json ./db/
-COPY --from=build /app/shared/package.json ./shared/
-
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/api ./api
+COPY --from=build /app/db ./db
+COPY --from=build /app/shared ./shared
+COPY --from=build /app/package.json ./
 ENV NODE_ENV=production
 EXPOSE 3000
 CMD ["node", "api/dist/index.js"]
