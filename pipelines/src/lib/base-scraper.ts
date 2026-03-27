@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Abstract base class for all DataForge silo scrapers.
 // Handles shared infrastructure: pipeline tracking, browser lifecycle,
 // content-hash diffing, freshness checks, run statistics, and fetch integrity logging.

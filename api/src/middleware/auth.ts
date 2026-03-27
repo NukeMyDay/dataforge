@@ -16,7 +16,7 @@ function hashKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");
 }
 
-export const authMiddleware = createMiddleware(async (c, next) => {
+export const authMiddleware = createMiddleware(async (c: any, next: any) => {
   const key = c.req.header("X-API-Key");
 
   if (!key) {

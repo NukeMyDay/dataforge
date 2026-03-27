@@ -1,3 +1,3 @@
 // Central DB connection — re-exported from the @dataforge/db package
-export { db, users, apiKeys, pipelines, pipelineRuns, fundingPrograms, fundingChangelog, rechtsformen, gewerbeanmeldungInfo, svContributionRates, svObligations, sourceFingerprints, taxObligations, taxDeadlines, permits, berufsgenossenschaften, hrObligations, notaryCosts, sourceRegistry, scrapeIntegrityLog, blockchainAnchors, anchorProofs, webhooks, webhookDeliveries, createListenClient, } from "@dataforge/db";
+export { db, users, apiKeys, pipelines, pipelineRuns, fundingPrograms, fundingChangelog, rechtsformen, gewerbeanmeldungInfo, svContributionRates, svObligations, sourceFingerprints, taxObligations, taxDeadlines, permits, berufsgenossenschaften, hrObligations, notaryCosts, sourceRegistry, scrapeIntegrityLog, blockchainAnchors, anchorProofs, webhooks, webhookDeliveries, recordQualityScores, createListenClient, } from "@dataforge/db";
 //# sourceMappingURL=db.js.map

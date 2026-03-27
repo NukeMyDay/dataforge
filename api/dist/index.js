@@ -20,6 +20,7 @@ import { handelsregisterRouter } from "./routes/handelsregister.js";
 import { sourcesRouter } from "./routes/sources.js";
 import { verifyRouter } from "./routes/verify.js";
 import { integrityRouter } from "./routes/integrity.js";
+import { qualityRouter } from "./routes/quality.js";
 import { assistantRouter } from "./routes/assistant.js";
 import { streamRouter } from "./routes/stream.js";
 import { webhooksRouter } from "./routes/webhooks.js";
@@ -88,6 +89,7 @@ app.route("/v1", handelsregisterRouter);
 app.route("/v1/sources", sourcesRouter);
 app.route("/v1/verify", verifyRouter);
 app.route("/v1/integrity", integrityRouter);
+app.route("/v1/quality", qualityRouter);
 // Real-time delivery — SSE stream (public, read-only) + webhook management (JWT)
 app.route("/v1/stream", streamRouter);
 app.route("/v1/webhooks", webhooksRouter);
