@@ -17,21 +17,28 @@ import type { Page } from "playwright";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const EXISTENZGRUENDER_BASE = "https://www.existenzgruender.de";
+// existenzgruender.de was migrated to existenzgruendungsportal.de (March 2026).
+// The new site consolidates all Rechtsformen into a single comparison page
+// rather than individual detail pages.
+const EXISTENZGRUENDUNGSPORTAL_BASE = "https://www.existenzgruendungsportal.de";
+const RECHTSFORMEN_OVERVIEW = `${EXISTENZGRUENDUNGSPORTAL_BASE}/Navigation/DE/Gruendungswissen/Rechtsformen/rechtsformen`;
 
-// Overview page listing all Rechtsformen with comparison links
-const RECHTSFORMEN_OVERVIEW = `${EXISTENZGRUENDER_BASE}/DE/Planen/Rechtsformen/inhalt.html`;
-
-// Fallback: known individual Rechtsform page URLs on existenzgruender.de
-const KNOWN_RECHTSFORM_URLS: string[] = [
-  `${EXISTENZGRUENDER_BASE}/DE/Planen/Rechtsformen/Einzelunternehmen/inhalt.html`,
-  `${EXISTENZGRUENDER_BASE}/DE/Planen/Rechtsformen/GbR/inhalt.html`,
-  `${EXISTENZGRUENDER_BASE}/DE/Planen/Rechtsformen/OHG/inhalt.html`,
-  `${EXISTENZGRUENDER_BASE}/DE/Planen/Rechtsformen/KG/inhalt.html`,
-  `${EXISTENZGRUENDER_BASE}/DE/Planen/Rechtsformen/GmbH/inhalt.html`,
-  `${EXISTENZGRUENDER_BASE}/DE/Planen/Rechtsformen/UG/inhalt.html`,
-  `${EXISTENZGRUENDER_BASE}/DE/Planen/Rechtsformen/AG/inhalt.html`,
-  `${EXISTENZGRUENDER_BASE}/DE/Planen/Rechtsformen/Freie-Berufe/inhalt.html`,
+// All Rechtsformen available on the consolidated comparison page.
+// Each entry maps to a fragment-keyed URL so BaseScraper treats each Rechtsform
+// as a separate "URL" while Playwright fetches the same base page.
+// `rowLabel`: normalized prefix of the first table cell on existenzgruendungsportal.de
+//   (lowercase, no dots/parens/slashes/spaces) used for row matching.
+const KNOWN_RECHTSFORMEN: Array<{ slug: string; name: string; fullName?: string; rowLabel: string }> = [
+  { slug: "einzelunternehmen", name: "Einzelunternehmen", rowLabel: "einzelunternehmen" },
+  { slug: "gbr", name: "GbR", fullName: "Gesellschaft bürgerlichen Rechts", rowLabel: "gbr" },
+  // Page uses: "eingetragene Kauffrau (e.Kfr.) bzw. eingetragener Kaufmann (e.Kfm.)"
+  { slug: "ek", name: "e.K.", fullName: "eingetragene Kauffrau / eingetragener Kaufmann", rowLabel: "eingetragenekauffrau" },
+  { slug: "ohg", name: "OHG", fullName: "Offene Handelsgesellschaft", rowLabel: "ohg" },
+  { slug: "kg", name: "KG", fullName: "Kommanditgesellschaft", rowLabel: "kg" },
+  { slug: "gmbh", name: "GmbH", fullName: "Gesellschaft mit beschränkter Haftung", rowLabel: "gmbh" },
+  { slug: "ug", name: "UG (haftungsbeschränkt)", fullName: "Unternehmergesellschaft (haftungsbeschränkt)", rowLabel: "ug" },
+  { slug: "ag", name: "AG", fullName: "Aktiengesellschaft", rowLabel: "ag" },
+  { slug: "genossenschaft", name: "Genossenschaft (eG)", fullName: "eingetragene Genossenschaft", rowLabel: "genossenschaft" },
 ];
 
 // service.bund.de — primary federal service portal for Gewerbeanmeldung procedure.
@@ -139,180 +146,157 @@ class RechtsformenScraper extends BaseScraper<ParsedRechtsform> {
     });
   }
 
-  protected async fetchUrls(page: Page): Promise<string[]> {
-    try {
-      await this.fetchWithRetry(page, RECHTSFORMEN_OVERVIEW);
-      const html = await page.content();
-      const $ = cheerio.load(html);
-
-      const found = new Set<string>();
-      // existenzgruender.de Rechtsformen sub-pages contain "/Rechtsformen/" in their path
-      // and end with "inhalt.html", excluding the overview page itself.
-      $("a[href]").each((_, el) => {
-        const href = $(el).attr("href") ?? "";
-        if (
-          href.includes("/Rechtsformen/") &&
-          href.endsWith("inhalt.html") &&
-          !href.endsWith("/Rechtsformen/inhalt.html")
-        ) {
-          const abs = href.startsWith("http")
-            ? href
-            : `${EXISTENZGRUENDER_BASE}${href.startsWith("/") ? "" : "/"}${href}`;
-          found.add(abs);
-        }
-      });
-
-      if (found.size > 0) {
-        console.log(
-          `[scrape-rechtsformen][fetcher] Collected ${found.size} URLs from overview`,
-        );
-        return [...found];
-      }
-    } catch (err) {
-      console.warn(
-        `[scrape-rechtsformen][fetcher] Overview fetch failed, using fallback URLs: ${err}`,
-      );
-    }
-
-    // Fallback: use the known list of Rechtsform pages
-    console.log(
-      `[scrape-rechtsformen][fetcher] Using ${KNOWN_RECHTSFORM_URLS.length} fallback URLs`,
-    );
-    return KNOWN_RECHTSFORM_URLS;
+  protected async fetchUrls(_page: Page): Promise<string[]> {
+    // existenzgruendungsportal.de consolidates all Rechtsformen into one page.
+    // We encode each Rechtsform slug as a URL fragment so BaseScraper treats
+    // each as a separate record. Playwright ignores the fragment on navigation.
+    return KNOWN_RECHTSFORMEN.map(rf => `${RECHTSFORMEN_OVERVIEW}#${rf.slug}`);
   }
 
   protected parsePage(html: string, url: string): ParsedRechtsform | null {
+    // Extract the slug from the URL fragment (e.g. "…/rechtsformen#gmbh" → "gmbh")
+    const fragment = decodeURIComponent(url.split("#")[1] ?? "");
+    const known = KNOWN_RECHTSFORMEN.find(rf => rf.slug === fragment);
+    if (!known) return null;
+
+    const { slug, name: knownName, fullName: knownFullName, rowLabel } = known;
     const $ = cheerio.load(html);
 
-    // Page title is the Rechtsform name (e.g. "GmbH", "Einzelunternehmen")
-    const rawTitle = $("h1").first().text().trim();
-    if (!rawTitle || rawTitle.length < 2) return null;
+    // existenzgruendungsportal.de renders all Rechtsformen in a row-based comparison
+    // table (first table on the page). Row structure:
+    //   cells[0]: Rechtsform name  | cells[1]: Mindestkapital | cells[2]: Gründer minimum
+    //   cells[3]: Haftung          | cells[4]: HR Eintragung  | cells[5]: Notar
+    //   cells[6]: Formvorschriften
+    // A second table on the page contains Vorteile/Nachteile — we ignore it.
 
-    // Strip common prefixes like "Rechtsform:" if present
-    const name = rawTitle.replace(/^Rechtsform[:\s]+/i, "").trim();
-    if (!name) return null;
+    let liabilityType: string | null = null;
+    let minCapitalEur: number | null = null;
+    let notaryRequired: boolean | null = null;
+    let tradeRegisterRequired: boolean | null = null;
+    let founderCount: string | null = null;
 
-    const slug = slugify(name);
+    // Use only the first table to avoid picking up data from the Vorteile/Nachteile table.
+    const firstTable = $("table").first();
+    let found = false;
 
-    // Full legal name is often in an h2 or a subtitle element
-    const fullName =
-      $(".subtitle, .lead, h2").first().text().trim() || null;
+    firstTable.find("tr").each((_, row) => {
+      const cells = $(row).find("td, th");
+      if (cells.length < 3) return;
 
-    // Extract definition-list metadata (dl > dt + dd pairs on these pages)
-    const meta: Record<string, string> = {};
-    $("dl dt").each((_, el) => {
-      const key = $(el).text().trim().toLowerCase().replace(/:$/, "");
-      const value = $(el).next("dd").text().trim();
-      if (key && value) meta[key] = value;
+      const firstCell = $(cells[0]).text().trim().replace(/\s+/g, " ");
+      // Match the first cell exactly against the known Rechtsform name or abbreviation.
+      // Use case-insensitive exact match to avoid false positives (e.g. "AG" in other words).
+      // Match using the precomputed rowLabel (normalized cell prefix) for this Rechtsform.
+      // The rowLabel is lowercase with dots, parens, slashes, and spaces removed.
+      const normalized = firstCell.toLowerCase().replace(/[.()/\s]/g, "");
+      if (!normalized.startsWith(rowLabel)) {
+        return; // no match — continue to next row
+      }
+      found = true;
+
+      // cells[1]: Mindestkapital
+      const capitalText = $(cells[1]).text().trim();
+      if (/keines|kein\s/i.test(capitalText) || capitalText === "") {
+        minCapitalEur = null;
+      } else {
+        const m = capitalText.match(/(\d[\d.,]*)\s*(?:Euro|EUR)/i);
+        if (m) {
+          const cleaned = m[1]!.replace(/\./g, "").replace(",", ".");
+          const parsed = parseFloat(cleaned);
+          if (!isNaN(parsed)) minCapitalEur = Math.round(parsed);
+        }
+      }
+
+      // cells[2]: Gründer minimum
+      if (cells.length > 2) founderCount = $(cells[2]).text().trim().substring(0, 64) || null;
+
+      // cells[3]: Haftung
+      if (cells.length > 3) liabilityType = $(cells[3]).text().trim().substring(0, 256) || null;
+
+      // cells[4]: HR Eintragung
+      if (cells.length > 4) {
+        const hrText = $(cells[4]).text().trim().toLowerCase();
+        tradeRegisterRequired = /^ja/i.test(hrText) ? true : /^nein/i.test(hrText) ? false : null;
+      }
+
+      // cells[5]: Notar
+      if (cells.length > 5) {
+        const notaryText = $(cells[5]).text().trim().toLowerCase();
+        notaryRequired = /^ja/i.test(notaryText) ? true : /^nein/i.test(notaryText) ? false : null;
+      }
+
+      return false; // break — found our row
     });
 
-    // Mindestkapital: look for patterns like "25.000 EUR" in meta or page text
-    let minCapitalEur: number | null = null;
-    const capitalSources = [
-      meta["mindestkapital"] ?? "",
-      meta["stammkapital"] ?? "",
-      meta["grundkapital"] ?? "",
-      $("*").text(),
-    ].join(" ");
-    const capitalMatch = capitalSources.match(
-      /(?:mindest(?:kapital|stammkapital)|grundkapital)[^\d]*(\d[\d.,]*)\s*(?:Euro|EUR)/i,
-    );
-    if (capitalMatch) {
-      const cleaned = capitalMatch[1]!.replace(/\./g, "").replace(",", ".");
-      const parsed = parseFloat(cleaned);
-      if (!isNaN(parsed)) minCapitalEur = Math.round(parsed);
+    if (!found) {
+      console.warn(`[scrape-rechtsformen] Could not locate row for ${knownName} in comparison table`);
     }
 
-    // Haftung
-    const liabilityType =
-      meta["haftung"] ??
-      extractSection($, ["haftung"]) ??
-      null;
+    // Description: extract Vorteile + Nachteile sections for the Rechtsform.
+    // The page uses headings like "Vorteile und Nachteile" followed by lists.
+    const descriptionParts: string[] = [];
 
-    // Notarpflicht
-    const notaryText =
-      (meta["notarpflicht"] ?? meta["notarielle beurkundung"] ?? "").toLowerCase();
-    const notaryRequired =
-      notaryText.includes("ja") || notaryText.includes("erforderlich")
-        ? true
-        : notaryText.includes("nein") || notaryText.includes("nicht")
-          ? false
-          : null;
+    // Try to extract advantage/disadvantage lists near this Rechtsform's name
+    const proText = extractSection($, ["vorteile", "pro und contra", "vor- und nachteile"]);
+    if (proText) descriptionParts.push(proText);
 
-    // Handelsregisterpflicht
-    const hrText =
-      (
-        meta["handelsregisterpflicht"] ??
-        meta["handelsregister"] ??
-        ""
-      ).toLowerCase();
-    const tradeRegisterRequired =
-      hrText.includes("ja") || hrText.includes("pflicht")
-        ? true
-        : hrText.includes("nein") || hrText.includes("nicht")
-          ? false
-          : null;
+    // Fallback: use the full main article text, trimmed
+    if (descriptionParts.length === 0) {
+      const mainText = $("main, article, .content").first().text().trim();
+      if (mainText && mainText.length > 50) descriptionParts.push(mainText.substring(0, 2000));
+    }
 
-    // Founder count
-    const founderCount =
-      meta["mindestanzahl gründer"] ??
-      meta["gesellschafter"] ??
-      meta["anzahl gründer"] ??
-      null;
+    const descriptionDe = descriptionParts.join("\n\n") || null;
 
-    // Description — main content block
-    const descriptionRaw =
-      extractSection($, ["überblick", "beschreibung", "was ist", "allgemein"]) ??
-      ($(".content-main, main, article").first().text().trim() || null);
-    const descriptionDe = descriptionRaw ?? null;
-
-    // Tax notes
-    const taxNotesDe = extractSection($, [
-      "steuer",
-      "besteuerung",
-      "steuerlich",
-    ]);
-
-    // Founding costs
-    const foundingCostsDe = extractSection($, [
-      "gründungsaufwand",
-      "gründungskosten",
-      "kosten",
-    ]);
+    // Capital: also try a full-page text scan as fallback for GmbH/UG/AG
+    if (minCapitalEur === null) {
+      const pageText = $.text();
+      const capitalMatch = pageText.match(
+        new RegExp(`${knownName}[^€EUR]*?(?:Mindest(?:stamm|grund|kapital)|Stammkapital|Grundkapital)[^\\d]*(\\d[\\d.,]*)\\s*(?:Euro|EUR)`, "i"),
+      );
+      if (capitalMatch) {
+        const cleaned = capitalMatch[1]!.replace(/\./g, "").replace(",", ".");
+        const parsed = parseFloat(cleaned);
+        if (!isNaN(parsed)) minCapitalEur = Math.round(parsed);
+      }
+    }
 
     const contentHash = makeHash({
-      name,
-      fullName,
-      minCapitalEur,
-      liabilityType,
-      notaryRequired,
-      tradeRegisterRequired,
-      descriptionDe,
-      taxNotesDe,
-    });
-
-    return {
-      name,
       slug,
-      fullName: fullName && fullName !== name ? fullName : null,
       minCapitalEur,
       liabilityType,
       notaryRequired,
       tradeRegisterRequired,
       founderCount,
       descriptionDe,
-      taxNotesDe,
-      foundingCostsDe,
-      sourceUrl: url,
+    });
+
+    // Canonical source URL (without fragment) for provenance
+    const sourceUrl = RECHTSFORMEN_OVERVIEW;
+
+    return {
+      name: knownName,
+      slug,
+      fullName: knownFullName ?? null,
+      minCapitalEur,
+      liabilityType,
+      notaryRequired,
+      tradeRegisterRequired,
+      founderCount,
+      descriptionDe,
+      taxNotesDe: null,
+      foundingCostsDe: null,
+      sourceUrl,
       contentHash,
     };
   }
 
   protected async diffRecord(record: ParsedRechtsform): Promise<DiffResult> {
+    // Use slug as the stable key (all records share the same sourceUrl now)
     const existing = await db
       .select({ id: rechtsformen.id, contentHash: rechtsformen.contentHash })
       .from(rechtsformen)
-      .where(eq(rechtsformen.sourceUrl, record.sourceUrl))
+      .where(eq(rechtsformen.slug, record.slug))
       .limit(1);
 
     if (existing.length === 0) return "new";
