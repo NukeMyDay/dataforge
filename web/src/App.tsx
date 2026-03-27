@@ -9,6 +9,7 @@ import ResearchPrimarySourceVerificationPage from "@/pages/ResearchPrimarySource
 import ResearchAiAssistedExtractionPage from "@/pages/ResearchAiAssistedExtraction.js";
 import ResearchBlockchainIntegrityPage from "@/pages/ResearchBlockchainIntegrity.js";
 import ResearchStorageArchitecturesPage from "@/pages/ResearchStorageArchitectures.js";
+import ResearchCssVsLlmExtractionPage from "@/pages/ResearchCssVsLlmExtraction.js";
 import AssistantPage from "@/pages/Assistant.js";
 import SearchPage from "@/pages/Search.js";
 import LoginPage from "@/pages/Login.js";
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/research/ai-assisted-extraction" element={<ResearchAiAssistedExtractionPage />} />
         <Route path="/research/blockchain-data-integrity" element={<ResearchBlockchainIntegrityPage />} />
         <Route path="/research/storage-architectures" element={<ResearchStorageArchitecturesPage />} />
+        <Route path="/research/css-vs-llm-extraction" element={<ResearchCssVsLlmExtractionPage />} />
         <Route path="/assistant" element={<AssistantPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/login" element={<LoginPage />} />

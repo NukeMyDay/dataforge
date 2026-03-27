@@ -20,6 +20,15 @@ const publishedArticles = [
     href: "/research/primary-source-verification",
   },
   {
+    title: "CSS Selectors vs. LLM-Based Extraction: A Benchmark on German Government Data",
+    abstract:
+      "A head-to-head benchmark of three extraction strategies — CSS-only, LLM-only (Claude Haiku), and a CSS-first hybrid with LLM fallback — on 20 pages of foerderdatenbank.de. The hybrid achieves 92% field fill rate and 0% error rate at 18% lower cost than LLM-only. CSS-only is 307× faster but blind to prose-embedded fields. LLM-only fails catastrophically on 35% of pages.",
+    tag: "Machine Learning",
+    date: "March 27, 2026",
+    readTime: "~22 min",
+    href: "/research/css-vs-llm-extraction",
+  },
+  {
     title: "AI-assisted Data Extraction from Unstructured Government Sources",
     abstract:
       "A hybrid CSS+LLM extraction pipeline that increases field coverage by 21 percentage points on foerderdatenbank.de, recovers 94% of fields lost to CMS restructuring, and costs ~$5 per full corpus run using Claude Haiku as a semantic fallback layer.",

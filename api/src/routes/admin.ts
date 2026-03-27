@@ -263,14 +263,26 @@ adminRouter.post("/migrate/:filename", async (c) => {
     return c.json({ data: null, meta: null, error: "Invalid migration filename" }, 400);
   }
 
-  // Resolve path relative to the app root (matches the Docker container working directory)
-  const migrationsDir = join(process.cwd(), "db", "migrations");
-  const filePath = join(migrationsDir, filename);
+  // Try multiple base paths: cwd(), dirname relative to this file, and /app fallback.
+  const { fileURLToPath } = await import("node:url");
+  const thisDir = fileURLToPath(new URL(".", import.meta.url));
+  const candidateBases = [
+    join(process.cwd(), "db", "migrations"),
+    join(thisDir, "..", "..", "..", "db", "migrations"),
+    join("/app", "db", "migrations"),
+  ];
 
-  let migrationSql: string;
-  try {
-    migrationSql = await readFile(filePath, "utf-8");
-  } catch {
+  let migrationSql: string | null = null;
+  for (const base of candidateBases) {
+    try {
+      migrationSql = await readFile(join(base, filename), "utf-8");
+      break;
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  if (!migrationSql) {
     return c.json({ data: null, meta: null, error: `Migration file not found: ${filename}` }, 404);
   }
 
@@ -286,4 +298,24 @@ adminRouter.post("/migrate/:filename", async (c) => {
   }
 
   return c.json({ data: { filename, statementsApplied: statements.length }, meta: null, error: null }, 200);
+});
+
+// POST /v1/admin/exec-sql — execute one or more raw SQL statements directly against the DB.
+// Admin-only. Accepts an array of SQL statement strings. Safe fallback when file-based
+// migration is not available (e.g. Docker layer cache issues).
+adminRouter.post("/exec-sql", async (c) => {
+  const body = await c.req.json<{ statements?: string[] }>().catch(() => null);
+  if (!body?.statements || !Array.isArray(body.statements) || body.statements.length === 0) {
+    return c.json({ data: null, meta: null, error: "Missing or empty 'statements' array" }, 400);
+  }
+
+  let executed = 0;
+  for (const statement of body.statements) {
+    if (typeof statement === "string" && statement.trim().length > 0) {
+      await db.execute(sql.raw(statement.trim()));
+      executed++;
+    }
+  }
+
+  return c.json({ data: { executed }, meta: null, error: null }, 200);
 });
