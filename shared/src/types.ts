@@ -64,6 +64,8 @@ export interface Institution {
   rankingPosition: number | null;
   descriptionDe: string | null;
   descriptionEn: string | null;
+  latitude: number | null;
+  longitude: number | null;
   slug: string;
   createdAt: Date;
   updatedAt: Date;

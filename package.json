@@ -20,6 +20,8 @@
     "api",
     "pipelines",
     "db",
-    "shared"
+    "shared",
+    "web",
+    "admin"
   ]
 }

@@ -3,3 +3,6 @@ packages:
   - "pipelines"
   - "db"
   - "shared"
+  - "web"
+  - "admin"
+  - "tests"

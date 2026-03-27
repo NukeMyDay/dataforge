@@ -62,6 +62,18 @@ export declare const programs: import("drizzle-orm/pg-core").PgTableWithColumns<
             enumValues: [string, ...string[]];
             baseColumn: never;
         }, {}, {}>;
+        titleFr: import("drizzle-orm/pg-core").PgColumn<{
+            name: "title_fr";
+            tableName: "programs";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
         degreeType: import("drizzle-orm/pg-core").PgColumn<{
             name: "degree_type";
             tableName: "programs";
@@ -172,6 +184,18 @@ export declare const programs: import("drizzle-orm/pg-core").PgTableWithColumns<
         }, {}, {}>;
         descriptionNl: import("drizzle-orm/pg-core").PgColumn<{
             name: "description_nl";
+            tableName: "programs";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        descriptionFr: import("drizzle-orm/pg-core").PgColumn<{
+            name: "description_fr";
             tableName: "programs";
             dataType: "string";
             columnType: "PgText";
@@ -300,6 +324,18 @@ export declare const programs: import("drizzle-orm/pg-core").PgTableWithColumns<
             notNull: false;
             hasDefault: false;
             enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        satisfactionScore: import("drizzle-orm/pg-core").PgColumn<{
+            name: "satisfaction_score";
+            tableName: "programs";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: undefined;
             baseColumn: never;
         }, {}, {}>;
         isActive: import("drizzle-orm/pg-core").PgColumn<{

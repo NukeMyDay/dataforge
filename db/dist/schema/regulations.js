@@ -11,6 +11,15 @@ export const regulations = pgTable("regulations", {
     sourceUrl: text("source_url"),
     effectiveDate: timestamp("effective_date", { withTimezone: true }),
     version: integer("version").notNull().default(1),
+    // Structured fields for NRW event permit regulations
+    responsibleAuthorityDe: text("responsible_authority_de"),
+    responsibleAuthorityEn: text("responsible_authority_en"),
+    requirementsDe: text("requirements_de"),
+    requirementsEn: text("requirements_en"),
+    processDe: text("process_de"),
+    processEn: text("process_en"),
+    deadlineNotesDe: text("deadline_notes_de"),
+    deadlineNotesEn: text("deadline_notes_en"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

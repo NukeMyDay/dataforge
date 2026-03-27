@@ -1,11 +1,20 @@
 import PgBoss from "pg-boss";
-import { scrapeProgramsNl } from "./jobs/scrape-programs-nl.js";
+import { runQuotaWarnings } from "./jobs/quota-warnings.js";
+import { scrapeFundingBund } from "./jobs/scrape-funding-bund.js";
+import { scrapeRechtsformen } from "./jobs/scrape-rechtsformen.js";
+import { scrapeSozialversicherung } from "./jobs/scrape-sozialversicherung.js";
+import { scrapeSteuern } from "./jobs/scrape-steuern.js";
+import { scrapeGenehmigungen } from "./jobs/scrape-genehmigungen.js";
 
 const connectionString =
   process.env["DATABASE_URL"] ?? "postgres://dataforge:dataforge@localhost:5432/dataforge";
 
-// Weekly schedule: every Monday at 03:00 UTC
-const SCHEDULE_SCRAPE_NL = "0 3 * * 1";
+const SCHEDULE_SCRAPE_FUNDING = "0 2 * * 0"; // every Sunday at 02:00 UTC
+const SCHEDULE_SCRAPE_RECHTSFORMEN = "0 3 * * 1"; // every Monday at 03:00 UTC
+const SCHEDULE_SCRAPE_SOZIALVERSICHERUNG = "0 4 * * 1"; // every Monday at 04:00 UTC
+const SCHEDULE_SCRAPE_STEUERN = "0 5 * * 1"; // every Monday at 05:00 UTC
+const SCHEDULE_SCRAPE_GENEHMIGUNGEN = "0 6 * * 1"; // every Monday at 06:00 UTC
+const SCHEDULE_QUOTA_WARNINGS = "0 10 * * *"; // every day at 10:00 UTC
 
 const boss = new PgBoss(connectionString);
 
@@ -15,25 +24,54 @@ async function start() {
   await boss.start();
   console.log("DataForge worker started");
 
-  // NL programs pipeline — runs weekly, also triggerable on demand
-  await boss.work("scrape-programs-nl", { teamSize: 1, teamConcurrency: 1 }, async (job) => {
-    console.log(`[worker] scrape-programs-nl job started (id=${job.id})`);
-    await scrapeProgramsNl();
+  // Funding programs (foerderdatenbank.de) — runs weekly Sunday 02:00 UTC
+  await boss.work("scrape-funding-bund", { teamSize: 1, teamConcurrency: 1 }, async (job) => {
+    console.log(`[worker] scrape-funding-bund job started (id=${job.id})`);
+    await scrapeFundingBund();
+  });
+  await boss.schedule("scrape-funding-bund", SCHEDULE_SCRAPE_FUNDING, {}, { singletonKey: "weekly" });
+  console.log(`[worker] scrape-funding-bund scheduled: ${SCHEDULE_SCRAPE_FUNDING}`);
+
+  // Rechtsformen + Gewerbeanmeldung (existenzgruender.de / service.bund.de) — weekly Monday 03:00 UTC
+  await boss.work("scrape-rechtsformen", { teamSize: 1, teamConcurrency: 1 }, async (job) => {
+    console.log(`[worker] scrape-rechtsformen job started (id=${job.id})`);
+    await scrapeRechtsformen();
+  });
+  await boss.schedule("scrape-rechtsformen", SCHEDULE_SCRAPE_RECHTSFORMEN, {}, { singletonKey: "weekly" });
+  console.log(`[worker] scrape-rechtsformen scheduled: ${SCHEDULE_SCRAPE_RECHTSFORMEN}`);
+
+  // Sozialversicherung rates + obligations — weekly Monday 04:00 UTC
+  await boss.work("scrape-sv", { teamSize: 1, teamConcurrency: 1 }, async (job) => {
+    console.log(`[worker] scrape-sv job started (id=${job.id})`);
+    await scrapeSozialversicherung();
+  });
+  await boss.schedule("scrape-sv", SCHEDULE_SCRAPE_SOZIALVERSICHERUNG, {}, { singletonKey: "weekly" });
+  console.log(`[worker] scrape-sv scheduled: ${SCHEDULE_SCRAPE_SOZIALVERSICHERUNG}`);
+
+  // Steuerliche Pflichten + Fristen (bundesfinanzministerium.de / elster.de) — weekly Monday 05:00 UTC
+  await boss.work("scrape-steuern", { teamSize: 1, teamConcurrency: 1 }, async (job) => {
+    console.log(`[worker] scrape-steuern job started (id=${job.id})`);
+    await scrapeSteuern();
+  });
+  await boss.schedule("scrape-steuern", SCHEDULE_SCRAPE_STEUERN, {}, { singletonKey: "weekly" });
+  console.log(`[worker] scrape-steuern scheduled: ${SCHEDULE_SCRAPE_STEUERN}`);
+
+  // Genehmigungen + Berufsgenossenschaften (gesetze-im-internet.de / ihk.de / dguv.de) — weekly Monday 06:00 UTC
+  await boss.work("scrape-genehmigungen", { teamSize: 1, teamConcurrency: 1 }, async (job) => {
+    console.log(`[worker] scrape-genehmigungen job started (id=${job.id})`);
+    await scrapeGenehmigungen();
+  });
+  await boss.schedule("scrape-genehmigungen", SCHEDULE_SCRAPE_GENEHMIGUNGEN, {}, { singletonKey: "weekly" });
+  console.log(`[worker] scrape-genehmigungen scheduled: ${SCHEDULE_SCRAPE_GENEHMIGUNGEN}`);
+
+  // Quota + expiry warning emails — daily at 10:00 UTC
+  await boss.work("quota-warnings", { teamSize: 1, teamConcurrency: 1 }, async (job) => {
+    console.log(`[worker] quota-warnings job started (id=${job.id})`);
+    await runQuotaWarnings();
   });
 
-  await boss.schedule("scrape-programs-nl", SCHEDULE_SCRAPE_NL, {}, { singletonKey: "weekly" });
-  console.log(`[worker] scrape-programs-nl scheduled: ${SCHEDULE_SCRAPE_NL}`);
-
-  // Placeholder handlers for future pipelines
-  await boss.work("scrape-programs-de", async (job) => {
-    console.log(`[worker] scrape-programs-de job started (id=${job.id})`);
-    // TODO: implement DE program scraping
-  });
-
-  await boss.work("scrape-regulations-nrw", async (job) => {
-    console.log(`[worker] scrape-regulations-nrw job started (id=${job.id})`);
-    // TODO: implement NRW regulation scraping
-  });
+  await boss.schedule("quota-warnings", SCHEDULE_QUOTA_WARNINGS, {}, { singletonKey: "daily" });
+  console.log(`[worker] quota-warnings scheduled: ${SCHEDULE_QUOTA_WARNINGS}`);
 }
 
 start().catch((err) => {

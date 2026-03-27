@@ -50,6 +50,18 @@ export declare const institutions: import("drizzle-orm/pg-core").PgTableWithColu
             enumValues: [string, ...string[]];
             baseColumn: never;
         }, {}, {}>;
+        nameFr: import("drizzle-orm/pg-core").PgColumn<{
+            name: "name_fr";
+            tableName: "institutions";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
         country: import("drizzle-orm/pg-core").PgColumn<{
             name: "country";
             tableName: "institutions";
@@ -156,6 +168,30 @@ export declare const institutions: import("drizzle-orm/pg-core").PgTableWithColu
             notNull: false;
             hasDefault: false;
             enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        latitude: import("drizzle-orm/pg-core").PgColumn<{
+            name: "latitude";
+            tableName: "institutions";
+            dataType: "number";
+            columnType: "PgDoublePrecision";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+        }, {}, {}>;
+        longitude: import("drizzle-orm/pg-core").PgColumn<{
+            name: "longitude";
+            tableName: "institutions";
+            dataType: "number";
+            columnType: "PgDoublePrecision";
+            data: number;
+            driverParam: string | number;
+            notNull: false;
+            hasDefault: false;
+            enumValues: undefined;
             baseColumn: never;
         }, {}, {}>;
         slug: import("drizzle-orm/pg-core").PgColumn<{

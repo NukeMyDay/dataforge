@@ -1,0 +1,30 @@
+# Stage 1: build web frontend
+FROM node:20-alpine AS web-builder
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY shared/package.json ./shared/
+COPY web/package.json ./web/
+RUN pnpm install --no-frozen-lockfile
+COPY shared/ ./shared/
+COPY web/ ./web/
+RUN pnpm --filter @dataforge/web build
+
+# Stage 2: build admin frontend
+FROM node:20-alpine AS admin-builder
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY shared/package.json ./shared/
+COPY admin/package.json ./admin/
+RUN pnpm install --no-frozen-lockfile
+COPY shared/ ./shared/
+COPY admin/ ./admin/
+RUN pnpm --filter @dataforge/admin build
+
+# Stage 3: nginx serving both frontends + proxying API
+FROM nginx:1.25-alpine
+COPY --from=web-builder /app/web/dist /usr/share/nginx/html
+COPY --from=admin-builder /app/admin/dist /usr/share/nginx/html/admin
+COPY infra/nginx/nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80 443

@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: dataforge
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: dataforge
       POSTGRES_DB: dataforge
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -13,8 +13,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - internal
 
   api:
     build:
@@ -23,20 +21,25 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://dataforge:${DB_PASSWORD}@postgres:5432/dataforge
+      DATABASE_URL: postgres://dataforge:dataforge@postgres:5432/dataforge
       PORT: 3000
+    ports:
+      - "3001:3000"
     depends_on:
       postgres:
         condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.dataforge.rule=Host(`api.gonear.de`)"
-      - "traefik.http.routers.dataforge.entrypoints=websecure"
-      - "traefik.http.routers.dataforge.tls.certresolver=letsencrypt"
-      - "traefik.http.services.dataforge.loadbalancer.server.port=3000"
-    networks:
-      - internal
-      - traefik-public
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+    restart: unless-stopped
+    environment:
+      INTERNAL_API_KEY: sf_internal_847a617db525e1c816fac1f23e88f8880bc680f58effc586
+    ports:
+      - "8081:80"
+    depends_on:
+      - api
 
   worker:
     build:
@@ -45,18 +48,10 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://dataforge:${DB_PASSWORD}@postgres:5432/dataforge
+      DATABASE_URL: postgres://dataforge:dataforge@postgres:5432/dataforge
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - internal
 
 volumes:
   postgres_data:
-
-networks:
-  internal:
-    driver: bridge
-  traefik-public:
-    external: true

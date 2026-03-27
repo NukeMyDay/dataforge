@@ -1,22 +1,20 @@
 FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN npm install -g pnpm
 
-FROM base AS build
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* tsconfig.base.json ./
-COPY api ./api
-COPY db ./db
-COPY shared ./shared
-RUN pnpm install --frozen-lockfile
-RUN pnpm -r build
+COPY api/package.json ./api/
+COPY db/package.json ./db/
+COPY shared/package.json ./shared/
+COPY pipelines/package.json ./pipelines/
 
-FROM base AS runtime
-WORKDIR /app
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/api ./api
-COPY --from=build /app/db ./db
-COPY --from=build /app/shared ./shared
-COPY --from=build /app/package.json ./
-ENV NODE_ENV=production
+RUN pnpm install --no-frozen-lockfile
+
+COPY api/ ./api/
+COPY db/ ./db/
+COPY shared/ ./shared/
+
+RUN pnpm --filter @dataforge/shared build &&     pnpm --filter @dataforge/db build &&     pnpm --filter @dataforge/api build
+
 EXPOSE 3000
 CMD ["node", "api/dist/index.js"]

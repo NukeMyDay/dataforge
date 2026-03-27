@@ -134,6 +134,102 @@ export declare const regulations: import("drizzle-orm/pg-core").PgTableWithColum
             enumValues: undefined;
             baseColumn: never;
         }, {}, {}>;
+        responsibleAuthorityDe: import("drizzle-orm/pg-core").PgColumn<{
+            name: "responsible_authority_de";
+            tableName: "regulations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        responsibleAuthorityEn: import("drizzle-orm/pg-core").PgColumn<{
+            name: "responsible_authority_en";
+            tableName: "regulations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        requirementsDe: import("drizzle-orm/pg-core").PgColumn<{
+            name: "requirements_de";
+            tableName: "regulations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        requirementsEn: import("drizzle-orm/pg-core").PgColumn<{
+            name: "requirements_en";
+            tableName: "regulations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        processDe: import("drizzle-orm/pg-core").PgColumn<{
+            name: "process_de";
+            tableName: "regulations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        processEn: import("drizzle-orm/pg-core").PgColumn<{
+            name: "process_en";
+            tableName: "regulations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        deadlineNotesDe: import("drizzle-orm/pg-core").PgColumn<{
+            name: "deadline_notes_de";
+            tableName: "regulations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
+        deadlineNotesEn: import("drizzle-orm/pg-core").PgColumn<{
+            name: "deadline_notes_en";
+            tableName: "regulations";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "regulations";
