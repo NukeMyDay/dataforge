@@ -49,7 +49,7 @@ export default function SearchPage() {
           {programs.length > 0 ? (
             <div className="space-y-4">
               <p className="text-sm text-gray-500 mb-4">
-                {(funding?.pagination.total ?? 0).toLocaleString("de-DE")} Ergebnisse für „{q}"
+                {(funding?.meta.total ?? 0).toLocaleString("de-DE")} Ergebnisse für „{q}"
               </p>
               {programs.map((p) => (
                 <div
@@ -89,12 +89,12 @@ export default function SearchPage() {
                   )}
                 </div>
               ))}
-              {(funding?.pagination.total ?? 0) > 20 && (
+              {(funding?.meta.total ?? 0) > 20 && (
                 <Link
                   to={`/gruendung/foerderung?q=${encodeURIComponent(q)}`}
                   className="block mt-4 text-sm text-brand-600 hover:underline text-center"
                 >
-                  Alle {funding?.pagination.total} Ergebnisse ansehen →
+                  Alle {funding?.meta.total} Ergebnisse ansehen →
                 </Link>
               )}
             </div>

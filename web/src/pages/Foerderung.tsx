@@ -147,7 +147,7 @@ export default function FoerderungPage() {
   }
 
   const programs = data?.data ?? [];
-  const pagination = data?.pagination;
+  const pagination = data?.meta;
   const hasFilters = !!(q || region || type || targetGroup);
 
   return (
@@ -282,7 +282,7 @@ export default function FoerderungPage() {
                 page={pagination.page}
                 pageSize={pagination.pageSize}
                 total={pagination.total}
-                onPageChange={setPage}
+                onChange={setPage}
               />
             </div>
           )}
