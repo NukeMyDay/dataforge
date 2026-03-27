@@ -293,7 +293,7 @@ class RechtsformenScraper extends BaseScraper<ParsedRechtsform> {
     const $ = cheerio.load(html);
 
     // existenzgruendungsportal.de renders all Rechtsformen in a row-based comparison
-    // table (first table on the page). Row structure:
+    // table (first table in the main content area). Row structure:
     //   cells[0]: Rechtsform name  | cells[1]: Mindestkapital | cells[2]: Gründer minimum
     //   cells[3]: Haftung          | cells[4]: HR Eintragung  | cells[5]: Notar
     //   cells[6]: Formvorschriften
@@ -305,8 +305,22 @@ class RechtsformenScraper extends BaseScraper<ParsedRechtsform> {
     let tradeRegisterRequired: boolean | null = null;
     let founderCount: string | null = null;
 
-    // Use only the first table to avoid picking up data from the Vorteile/Nachteile table.
-    const firstTable = $("table").first();
+    // Scope to the main content area to skip any navigation or layout tables in
+    // the page header/sidebar. Modern Drupal CMS uses <main> or role="main".
+    const contentArea = $("main, [role='main'], article").first();
+    const searchRoot = contentArea.length ? contentArea : $("body");
+
+    // Use the first table within the content area that contains a "Mindestkapital"
+    // header — this is the comparison table. Fallback to the first table in the
+    // content area if the header text changes.
+    let firstTable = searchRoot.find("table").filter((_, tbl) => {
+      return $(tbl).find("th, td").toArray().some(
+        (cell) => $(cell).text().toLowerCase().includes("mindestkapital"),
+      );
+    }).first();
+    if (!firstTable.length) {
+      firstTable = searchRoot.find("table").first();
+    }
     let found = false;
 
     firstTable.find("tr").each((_, row) => {

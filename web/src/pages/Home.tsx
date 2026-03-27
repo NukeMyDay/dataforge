@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/client.js";
+import SiloCard from "@/components/SiloCard.js";
 
 const SILOS = [
   {
@@ -10,58 +11,68 @@ const SILOS = [
     icon: "💶",
     href: "/gruendung/foerderung",
     status: "live" as const,
-    color: "bg-blue-50 border-blue-200 hover:border-blue-400",
-    iconBg: "bg-blue-100",
+    color: "border-blue-200 hover:border-blue-400",
+    iconBg: "bg-blue-50 text-blue-700",
   },
   {
     id: "rechtsformen",
     title: "Rechtsformen",
     description: "GmbH, UG, AG, GbR — Vor- und Nachteile, Mindestkapital, Haftung und Gründungsaufwand im Vergleich.",
     icon: "⚖️",
-    href: "/gruendung",
-    status: "soon" as const,
-    color: "bg-violet-50 border-violet-200 hover:border-violet-300",
-    iconBg: "bg-violet-100",
+    href: "/gruendung/rechtsformen",
+    status: "live" as const,
+    color: "border-violet-200 hover:border-violet-400",
+    iconBg: "bg-violet-50 text-violet-700",
+  },
+  {
+    id: "gewerbeanmeldung",
+    title: "Gewerbeanmeldung",
+    description: "Gebühren, Bearbeitungszeiten und Unterlagen für die Gewerbeanmeldung in allen 16 Bundesländern.",
+    icon: "🏢",
+    href: "/gruendung/gewerbeanmeldung",
+    status: "live" as const,
+    color: "border-green-200 hover:border-green-400",
+    iconBg: "bg-green-50 text-green-700",
   },
   {
     id: "kosten",
     title: "Gründungskosten",
     description: "Notarkosten, Handelsregistergebühren, Beratungskosten — eine realistische Kalkulation für den Einstieg.",
     icon: "🧮",
-    href: "/gruendung",
+    href: null,
     status: "soon" as const,
-    color: "bg-amber-50 border-amber-200 hover:border-amber-300",
-    iconBg: "bg-amber-100",
+    color: "border-amber-200",
+    iconBg: "bg-amber-50 text-amber-700",
   },
   {
     id: "behoerden",
     title: "Behörden & Ämter",
     description: "Welche Ämter brauche ich, in welcher Reihenfolge? Zuständigkeiten, Formulare und Fristen.",
     icon: "🏛️",
-    href: "/gruendung",
+    href: null,
     status: "soon" as const,
-    color: "bg-emerald-50 border-emerald-200 hover:border-emerald-300",
-    iconBg: "bg-emerald-100",
+    color: "border-emerald-200",
+    iconBg: "bg-emerald-50 text-emerald-700",
   },
   {
     id: "berater",
     title: "Berater & Netzwerke",
     description: "Steuerberater, Anwälte, Acceleratoren und Gründerzentren — regional und nach Branche filterbar.",
     icon: "🤝",
-    href: "/gruendung",
+    href: null,
     status: "soon" as const,
-    color: "bg-rose-50 border-rose-200 hover:border-rose-300",
-    iconBg: "bg-rose-100",
+    color: "border-rose-200",
+    iconBg: "bg-rose-50 text-rose-700",
   },
   {
     id: "markt",
     title: "Markt & Branchendaten",
     description: "Marktgrößen, Wachstumsraten und Wettbewerbslandschaften für die relevantesten Gründungssektoren.",
     icon: "📊",
-    href: "/gruendung",
+    href: null,
     status: "soon" as const,
-    color: "bg-cyan-50 border-cyan-200 hover:border-cyan-300",
-    iconBg: "bg-cyan-100",
+    color: "border-cyan-200",
+    iconBg: "bg-cyan-50 text-cyan-700",
   },
 ];
 
@@ -127,33 +138,9 @@ export default function HomePage() {
           Sechs Datenbereiche — unabhängig kuratiert, über API und Web abrufbar.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {SILOS.map((silo) => {
-            const isLive = silo.status === "live";
-            const content = (
-              <div className={`card border-2 flex gap-4 transition-all ${silo.color} ${!isLive ? "opacity-80" : ""}`}>
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${silo.iconBg}`}>
-                  {silo.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-gray-900">{silo.title}</h3>
-                    {isLive ? (
-                      <span className="badge bg-emerald-100 text-emerald-700 text-xs">Live</span>
-                    ) : (
-                      <span className="badge bg-gray-100 text-gray-500 text-xs">Bald</span>
-                    )}
-                  </div>
-                  <p className="text-gray-600 text-sm">{silo.description}</p>
-                </div>
-              </div>
-            );
-
-            return isLive ? (
-              <Link key={silo.id} to={silo.href}>{content}</Link>
-            ) : (
-              <div key={silo.id} className="cursor-default">{content}</div>
-            );
-          })}
+          {SILOS.map((silo) => (
+            <SiloCard key={silo.id} {...silo} />
+          ))}
         </div>
       </section>
 
