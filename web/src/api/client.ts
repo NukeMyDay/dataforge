@@ -77,9 +77,34 @@ export interface StatsResponse {
   };
 }
 
+export interface AssistantMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AssistantSource {
+  title: string;
+  url?: string;
+  type?: string;
+}
+
+export interface AssistantResponse {
+  data: {
+    reply: string;
+    sources: AssistantSource[];
+  };
+}
+
 export const api = {
   stats: {
     get: () => request<StatsResponse>("/v1/stats"),
+  },
+  assistant: {
+    chat: (messages: AssistantMessage[]) =>
+      request<AssistantResponse>("/v1/assistant", {
+        method: "POST",
+        body: JSON.stringify({ messages }),
+      }),
   },
   funding: {
     list: (filter: FundingFilter = {}) => {

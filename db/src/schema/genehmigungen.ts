@@ -1,4 +1,5 @@
 import {
+  index,
   pgTable,
   serial,
   text,
@@ -78,7 +79,10 @@ export const permits = pgTable("permits", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  // BRIN index for freshness-based queries (DAT-53)
+  scrapedBrin: index("idx_permits_scraped_brin").on(t.scrapedAt),
+}));
 
 // ─── berufsgenossenschaften ───────────────────────────────────────────────────
 // One row per statutory accident insurance institution (Berufsgenossenschaft).

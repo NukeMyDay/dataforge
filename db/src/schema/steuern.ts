@@ -1,4 +1,5 @@
 import {
+  index,
   pgTable,
   serial,
   text,
@@ -61,7 +62,10 @@ export const taxObligations = pgTable("tax_obligations", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  // BRIN index for freshness-based queries (DAT-53)
+  scrapedBrin: index("idx_tax_obligations_scraped_brin").on(t.scrapedAt),
+}));
 
 // ─── tax_deadlines ────────────────────────────────────────────────────────────
 // Key filing deadlines and payment due dates for German business taxes.

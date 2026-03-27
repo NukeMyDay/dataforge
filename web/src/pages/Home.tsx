@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/client.js";
 
@@ -66,6 +66,7 @@ const SILOS = [
 ];
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const { data: statsData } = useQuery({
     queryKey: ["stats"],
     queryFn: () => api.stats.get(),
@@ -160,7 +161,8 @@ export default function HomePage() {
       <section className="bg-gradient-to-r from-brand-600 to-brand-800 py-16 px-4">
         <div className="max-w-3xl mx-auto text-center text-white">
           <div className="inline-flex items-center gap-2 bg-white/10 text-brand-100 text-sm px-4 py-1.5 rounded-full mb-5 font-medium">
-            Demnächst
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Jetzt verfügbar
           </div>
           <h2 className="text-3xl font-bold mb-4">Startup Assistant</h2>
           <p className="text-brand-100 text-lg mb-8 max-w-xl mx-auto">
@@ -168,10 +170,10 @@ export default function HomePage() {
             und begleitet dich durch Behördenwege — alles in einem Gespräch.
           </p>
           <button
-            disabled
-            className="px-6 py-3 bg-white text-brand-700 font-semibold rounded-xl opacity-60 cursor-not-allowed"
+            onClick={() => navigate("/assistant")}
+            className="px-6 py-3 bg-white text-brand-700 font-semibold rounded-xl hover:bg-brand-50 transition-colors"
           >
-            Warteliste beitreten — coming soon
+            Assistant starten →
           </button>
         </div>
       </section>

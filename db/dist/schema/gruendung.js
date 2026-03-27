@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, serial, text, timestamp, varchar, } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, serial, text, timestamp, varchar, } from "drizzle-orm/pg-core";
 // ─── Rechtsformen ─────────────────────────────────────────────────────────────
 // German legal entity types (GmbH, UG, GbR, etc.)
 // Primary source: existenzgruender.de (BMWi) — official federal guide for founders,
@@ -29,7 +29,10 @@ export const rechtsformen = pgTable("rechtsformen", {
     scrapedAt: timestamp("scraped_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+    // BRIN index for freshness-based queries (DAT-53)
+    scrapedBrin: index("idx_rechtsformen_scraped_brin").on(t.scrapedAt),
+}));
 // ─── Gewerbeanmeldung Info ────────────────────────────────────────────────────
 // Business registration requirements per Bundesland.
 // Primary source: service.bund.de — federal service portal listing Gewerbeanmeldung

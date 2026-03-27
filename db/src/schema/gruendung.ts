@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -47,7 +48,10 @@ export const rechtsformen = pgTable("rechtsformen", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  // BRIN index for freshness-based queries (DAT-53)
+  scrapedBrin: index("idx_rechtsformen_scraped_brin").on(t.scrapedAt),
+}));
 
 // ─── Gewerbeanmeldung Info ────────────────────────────────────────────────────
 // Business registration requirements per Bundesland.

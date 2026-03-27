@@ -707,6 +707,99 @@ export const openApiSpec = {
                 },
             },
         },
+        "/assistant": {
+            post: {
+                summary: "Sophex Startup Assistant",
+                description: "Agentic AI assistant for German founders. Anonymous — no API key required. Rate-limited to 10 requests/minute per IP. Client sends the full messages array for stateless multi-turn conversations. The assistant queries the Sophex DB via 8 built-in tools and returns grounded answers in German with source citations.",
+                tags: ["Assistant"],
+                requestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                required: ["messages"],
+                                properties: {
+                                    messages: {
+                                        type: "array",
+                                        description: "Full conversation history (stateless multi-turn).",
+                                        items: {
+                                            type: "object",
+                                            required: ["role", "content"],
+                                            properties: {
+                                                role: { type: "string", enum: ["user", "assistant"] },
+                                                content: { type: "string", minLength: 1 },
+                                            },
+                                        },
+                                    },
+                                    context: {
+                                        type: "object",
+                                        description: "Optional founder context injected into the system prompt.",
+                                        properties: {
+                                            bundesland: { type: "string", example: "Bayern" },
+                                            rechtsform: { type: "string", example: "gmbh" },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    "200": {
+                        description: "Grounded answer with source citations",
+                        content: {
+                            "application/json": {
+                                schema: {
+                                    type: "object",
+                                    properties: {
+                                        data: {
+                                            type: "object",
+                                            properties: {
+                                                reply: { type: "string", description: "AI-generated answer in German (or English if user wrote in English)." },
+                                                sources: {
+                                                    type: "array",
+                                                    description: "Source citations extracted from DB tool results.",
+                                                    items: {
+                                                        type: "object",
+                                                        properties: {
+                                                            label: { type: "string" },
+                                                            url: { type: "string", format: "uri" },
+                                                        },
+                                                    },
+                                                },
+                                                tools_called: {
+                                                    type: "array",
+                                                    description: "Names of DB tools invoked during this request.",
+                                                    items: { type: "string" },
+                                                },
+                                            },
+                                        },
+                                        meta: {
+                                            type: "object",
+                                            properties: {
+                                                tokens: {
+                                                    type: "object",
+                                                    properties: {
+                                                        input_tokens: { type: "integer" },
+                                                        output_tokens: { type: "integer" },
+                                                    },
+                                                },
+                                                model: { type: "string", example: "claude-sonnet-4-6" },
+                                            },
+                                        },
+                                        error: { nullable: true, example: null },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    "400": { description: "Invalid request or message too large", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                    "429": { description: "Rate limit exceeded: max 10 requests per minute per IP" },
+                    "503": { description: "AI service not configured" },
+                },
+            },
+        },
     },
 };
 //# sourceMappingURL=openapi.js.map

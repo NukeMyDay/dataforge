@@ -15,6 +15,7 @@ export default function Navbar() {
         <div className="flex items-center gap-1">
           {[
             { to: "/gruendung", label: "Gründungsdaten" },
+            { to: "/assistant", label: "Startup Assistant" },
             { to: "/research", label: "Research" },
           ].map(({ to, label }) => (
             <NavLink

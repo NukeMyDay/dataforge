@@ -21,7 +21,7 @@ webhooksRouter.use("*", requireJwt);
 
 // GET /v1/webhooks — list caller's webhooks
 webhooksRouter.get("/", async (c) => {
-  const userId = c.get("userId") as number;
+  const userId = c.get("jwtUserId") as number;
   const rows = await db
     .select()
     .from(webhooks)
@@ -37,7 +37,7 @@ webhooksRouter.get("/", async (c) => {
 
 // POST /v1/webhooks — register a new webhook
 webhooksRouter.post("/", async (c) => {
-  const userId = c.get("userId") as number;
+  const userId = c.get("jwtUserId") as number;
   const body = await c.req.json<{ url: string; events?: string[]; description?: string }>();
 
   if (!body.url || !body.url.startsWith("http")) {
@@ -62,7 +62,7 @@ webhooksRouter.post("/", async (c) => {
 
 // GET /v1/webhooks/:id — get webhook details (no secret)
 webhooksRouter.get("/:id", async (c) => {
-  const userId = c.get("userId") as number;
+  const userId = c.get("jwtUserId") as number;
   const id = parseInt(c.req.param("id"), 10);
 
   const [webhook] = await db.select().from(webhooks).where(eq(webhooks.id, id));
@@ -86,7 +86,7 @@ webhooksRouter.get("/:id", async (c) => {
 
 // PATCH /v1/webhooks/:id — update url/events/active/description
 webhooksRouter.patch("/:id", async (c) => {
-  const userId = c.get("userId") as number;
+  const userId = c.get("jwtUserId") as number;
   const id = parseInt(c.req.param("id"), 10);
   const body = await c.req.json<{ url?: string; events?: string[]; isActive?: boolean; description?: string }>();
 
@@ -119,7 +119,7 @@ webhooksRouter.patch("/:id", async (c) => {
 
 // DELETE /v1/webhooks/:id — delete webhook
 webhooksRouter.delete("/:id", async (c) => {
-  const userId = c.get("userId") as number;
+  const userId = c.get("jwtUserId") as number;
   const id = parseInt(c.req.param("id"), 10);
 
   const [webhook] = await db.select().from(webhooks).where(eq(webhooks.id, id));

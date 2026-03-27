@@ -1,4 +1,5 @@
-import { integer, pgTable, serial, text, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
+import { integer, pgTable, index, serial, text, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { pipelineRuns } from "./pipelines.js";
 export const fundingPrograms = pgTable("funding_programs", {
     id: serial("id").primaryKey(),
@@ -40,7 +41,12 @@ export const fundingPrograms = pgTable("funding_programs", {
     lastScrapedAt: timestamp("last_scraped_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+    // BRIN index for freshness-based queries (DAT-53)
+    lastScrapedBrin: index("idx_funding_programs_last_scraped_brin").on(t.lastScrapedAt),
+    // Partial index for active-record read paths (DAT-53)
+    activePartial: index("idx_funding_programs_active_partial").on(t.id).where(sql `is_active = TRUE`),
+}));
 export const fundingChangelog = pgTable("funding_changelog", {
     id: serial("id").primaryKey(),
     fundingProgramId: integer("funding_program_id")

@@ -4,6 +4,7 @@ import { createHash } from "crypto";
 import { db, fundingPrograms, fundingChangelog, pipelines, pipelineRuns } from "@dataforge/db";
 import { eq } from "drizzle-orm";
 import { needsRescrape, recordFingerprint } from "../lib/freshness-check.js";
+import { mergeWithLlmFallback, type FieldSchema, type HybridExtractionLog } from "../lib/llm-extractor.js";
 
 const BASE_URL = "https://www.foerderdatenbank.de";
 const SEARCH_URL = `${BASE_URL}/SiteGlobals/FDB/Forms/Suche/Foederprogrammsuche_Formular.html`;
@@ -11,6 +12,43 @@ const REQUEST_DELAY_MS = 2000;
 const MAX_PAGES = 260;
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 const PIPELINE_NAME = "scrape-funding-bund";
+
+// Set FUNDING_LLM_FALLBACK=true to enable LLM fallback for fields CSS fails to extract.
+// Requires ANTHROPIC_API_KEY. Adds ~$0.003/page for missing fields only.
+const LLM_FALLBACK_ENABLED = process.env.FUNDING_LLM_FALLBACK === "true";
+
+// LLM field schemas — descriptions help Haiku locate the right section on German gov pages.
+const FUNDING_FIELD_SCHEMAS: Record<string, FieldSchema> = {
+  summaryDe: {
+    description: "Short summary of the funding program in German",
+    hint: "look for 'Kurztext' or 'Kurzzusammenfassung' headings",
+  },
+  descriptionDe: {
+    description: "Full description of the funding program in German",
+    hint: "look for 'Volltext' heading",
+  },
+  legalRequirementsDe: {
+    description: "Legal requirements and eligibility criteria in German",
+    hint: "look for 'Rechtliche Voraussetzungen' or 'Voraussetzungen' headings",
+  },
+  directiveDe: {
+    description: "Legal basis and directives in German",
+    hint: "look for 'Richtlinie' or 'Rechtsgrundlage' headings",
+  },
+  applicationProcess: {
+    description: "Application process and procedure in German",
+    hint: "look for 'Antrag', 'Verfahren', or 'Wie beantrage' headings",
+  },
+  deadlineInfo: {
+    description: "Application deadline or cut-off dates in German",
+    hint: "look for 'Frist', 'Termin', or 'Stichtag' headings",
+  },
+  fundingAmountInfo: {
+    description:
+      "Funding amounts, grant values, loan limits — e.g. 'bis zu X Euro', '80% der Kosten'",
+    hint: "look in the summary or description text for monetary amounts",
+  },
+};
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -213,6 +251,56 @@ function parseFundingPage(html: string): ParsedFunding | null {
   };
 }
 
+/**
+ * Hybrid parse: CSS selectors first, LLM fallback for null fields.
+ * Returns the merged ParsedFunding and an extraction log for comparison metrics.
+ */
+async function parseFundingPageHybrid(
+  html: string
+): Promise<{ parsed: ParsedFunding | null; log: HybridExtractionLog | null }> {
+  const cssResult = parseFundingPage(html);
+  if (!cssResult) return { parsed: null, log: null };
+
+  if (!LLM_FALLBACK_ENABLED) {
+    return { parsed: cssResult, log: null };
+  }
+
+  // Only pass the text fields that can benefit from LLM fallback
+  const textFieldSubset: Pick<
+    ParsedFunding,
+    | "summaryDe"
+    | "descriptionDe"
+    | "legalRequirementsDe"
+    | "directiveDe"
+    | "applicationProcess"
+    | "deadlineInfo"
+    | "fundingAmountInfo"
+  > = {
+    summaryDe: cssResult.summaryDe,
+    descriptionDe: cssResult.descriptionDe,
+    legalRequirementsDe: cssResult.legalRequirementsDe,
+    directiveDe: cssResult.directiveDe,
+    applicationProcess: cssResult.applicationProcess,
+    deadlineInfo: cssResult.deadlineInfo,
+    fundingAmountInfo: cssResult.fundingAmountInfo,
+  };
+
+  const { merged, log } = await mergeWithLlmFallback(
+    textFieldSubset,
+    html,
+    FUNDING_FIELD_SCHEMAS,
+    true
+  );
+
+  // Merge LLM-filled fields back into the full record
+  const finalParsed: ParsedFunding = {
+    ...cssResult,
+    ...merged,
+  };
+
+  return { parsed: finalParsed, log };
+}
+
 async function upsertFunding(
   parsed: ParsedFunding,
   sourceUrl: string,
@@ -309,6 +397,14 @@ export async function scrapeFundingBund(): Promise<void> {
   let errorMessage: string | null = null;
   let browser: Browser | null = null;
 
+  // LLM extraction metrics (only populated when FUNDING_LLM_FALLBACK=true)
+  const llmStats = {
+    pagesWithLlmCall: 0,
+    totalTokensUsed: 0,
+    fieldsFilled: 0,
+    fieldsAttempted: 0,
+  };
+
   try {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ userAgent: USER_AGENT });
@@ -331,8 +427,23 @@ export async function scrapeFundingBund(): Promise<void> {
         await sleep(REQUEST_DELAY_MS);
         await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
         const html = await page.content();
-        const parsed = parseFundingPage(html);
+        const { parsed, log } = await parseFundingPageHybrid(html);
         if (!parsed) { errorCount++; continue; }
+
+        // Accumulate LLM extraction stats
+        if (log) {
+          llmStats.pagesWithLlmCall += log.llmCalls > 0 ? 1 : 0;
+          llmStats.totalTokensUsed += log.llmTokensUsed;
+          const attempted = Object.values(log.fieldSources).filter(
+            (s) => s !== "css"
+          ).length;
+          const filled = Object.values(log.fieldSources).filter(
+            (s) => s === "llm"
+          ).length;
+          llmStats.fieldsAttempted += attempted;
+          llmStats.fieldsFilled += filled;
+        }
+
         const result = await upsertFunding(parsed, url, runId);
 
         // Record fingerprint after successful scrape for future freshness checks
@@ -356,6 +467,21 @@ export async function scrapeFundingBund(): Promise<void> {
       }
     }
     console.log(`[${PIPELINE_NAME}] Completed — new: ${newCount}, updated: ${updatedCount}, unchanged: ${unchangedCount}, errors: ${errorCount}`);
+    if (LLM_FALLBACK_ENABLED) {
+      const fillRate =
+        llmStats.fieldsAttempted > 0
+          ? ((llmStats.fieldsFilled / llmStats.fieldsAttempted) * 100).toFixed(1)
+          : "0.0";
+      const estimatedCostUsd = (
+        (llmStats.totalTokensUsed / 1_000_000) * 3.0
+      ).toFixed(4); // Haiku blended rate estimate
+      console.log(
+        `[${PIPELINE_NAME}] LLM stats — pages with LLM call: ${llmStats.pagesWithLlmCall}, ` +
+          `tokens used: ${llmStats.totalTokensUsed}, ` +
+          `fields filled by LLM: ${llmStats.fieldsFilled}/${llmStats.fieldsAttempted} (${fillRate}%), ` +
+          `estimated cost: $${estimatedCostUsd}`
+      );
+    }
   } catch (err) {
     errorMessage = err instanceof Error ? err.message : String(err);
     console.error(`[${PIPELINE_NAME}] Fatal error:`, err);

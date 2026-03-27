@@ -1,0 +1,64 @@
+version: "3.9"
+
+# ─── Storage Architecture Benchmark — DAT-52 ─────────────────────────────────
+# Spins up four storage engines for head-to-head comparison.
+# Run with: docker compose -f docker-compose.benchmark.yml up -d
+# Then: pnpm benchmark:run
+
+services:
+  # ── Baseline: PostgreSQL 16 (current production engine) ─────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: bench_postgres
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bench"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  # ── TimescaleDB: PostgreSQL extension for time-series / hypertables ──────────
+  timescale:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: bench_timescale
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bench"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - ts_data:/var/lib/postgresql/data
+
+  # ── ClickHouse: columnar OLAP engine ────────────────────────────────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    environment:
+      CLICKHOUSE_USER: bench
+      CLICKHOUSE_PASSWORD: bench
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"   # HTTP interface
+      - "9000:9000"   # native TCP
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ch_data:/var/lib/clickhouse
+
+volumes:
+  pg_data:
+  ts_data:
+  ch_data:

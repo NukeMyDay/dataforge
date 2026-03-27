@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, varchar, } from "drizzle-orm/pg-core";
+import { index, pgTable, serial, text, timestamp, varchar, } from "drizzle-orm/pg-core";
 // ─── Sozialversicherungsbeiträge ───────────────────────────────────────────────
 // Current contribution rates (Beitragssätze) for all branches of statutory social insurance.
 // Sources (each rate row links back to its primary authority):
@@ -29,7 +29,10 @@ export const svContributionRates = pgTable("sv_contribution_rates", {
     scrapedAt: timestamp("scraped_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+    // BRIN index for freshness-based queries (DAT-53)
+    scrapedBrin: index("idx_sv_contribution_rates_scraped_brin").on(t.scrapedAt),
+}));
 // ─── Sozialversicherungspflichten ─────────────────────────────────────────────
 // Employer obligations and registration requirements when hiring employees.
 // Sources:

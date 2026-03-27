@@ -17,7 +17,7 @@ const VALID_EVENTS = [
 webhooksRouter.use("*", requireJwt);
 // GET /v1/webhooks — list caller's webhooks
 webhooksRouter.get("/", async (c) => {
-    const userId = c.get("userId");
+    const userId = c.get("jwtUserId");
     const rows = await db
         .select()
         .from(webhooks)
@@ -31,7 +31,7 @@ webhooksRouter.get("/", async (c) => {
 });
 // POST /v1/webhooks — register a new webhook
 webhooksRouter.post("/", async (c) => {
-    const userId = c.get("userId");
+    const userId = c.get("jwtUserId");
     const body = await c.req.json();
     if (!body.url || !body.url.startsWith("http")) {
         return c.json({ data: null, meta: null, error: "url must be a valid http(s) URL" }, 400);
@@ -51,7 +51,7 @@ webhooksRouter.post("/", async (c) => {
 });
 // GET /v1/webhooks/:id — get webhook details (no secret)
 webhooksRouter.get("/:id", async (c) => {
-    const userId = c.get("userId");
+    const userId = c.get("jwtUserId");
     const id = parseInt(c.req.param("id"), 10);
     const [webhook] = await db.select().from(webhooks).where(eq(webhooks.id, id));
     if (!webhook || webhook.userId !== userId) {
@@ -71,7 +71,7 @@ webhooksRouter.get("/:id", async (c) => {
 });
 // PATCH /v1/webhooks/:id — update url/events/active/description
 webhooksRouter.patch("/:id", async (c) => {
-    const userId = c.get("userId");
+    const userId = c.get("jwtUserId");
     const id = parseInt(c.req.param("id"), 10);
     const body = await c.req.json();
     const [webhook] = await db.select().from(webhooks).where(eq(webhooks.id, id));
@@ -99,7 +99,7 @@ webhooksRouter.patch("/:id", async (c) => {
 });
 // DELETE /v1/webhooks/:id — delete webhook
 webhooksRouter.delete("/:id", async (c) => {
-    const userId = c.get("userId");
+    const userId = c.get("jwtUserId");
     const id = parseInt(c.req.param("id"), 10);
     const [webhook] = await db.select().from(webhooks).where(eq(webhooks.id, id));
     if (!webhook || webhook.userId !== userId) {

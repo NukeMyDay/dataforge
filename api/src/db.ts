@@ -18,4 +18,11 @@ export {
   berufsgenossenschaften,
   hrObligations,
   notaryCosts,
+  sourceRegistry,
+  scrapeIntegrityLog,
+  blockchainAnchors,
+  anchorProofs,
+  webhooks,
+  webhookDeliveries,
+  createListenClient,
 } from "@dataforge/db";

@@ -1,4 +1,5 @@
 import {
+  index,
   pgTable,
   serial,
   text,
@@ -44,7 +45,10 @@ export const svContributionRates = pgTable("sv_contribution_rates", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  // BRIN index for freshness-based queries (DAT-53)
+  scrapedBrin: index("idx_sv_contribution_rates_scraped_brin").on(t.scrapedAt),
+}));
 
 // ─── Sozialversicherungspflichten ─────────────────────────────────────────────
 // Employer obligations and registration requirements when hiring employees.

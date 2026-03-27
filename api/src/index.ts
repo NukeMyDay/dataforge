@@ -17,6 +17,12 @@ import { sozialversicherungRouter } from "./routes/sozialversicherung.js";
 import { steuernRouter } from "./routes/steuern.js";
 import { genehmigungenRouter } from "./routes/genehmigungen.js";
 import { handelsregisterRouter } from "./routes/handelsregister.js";
+import { sourcesRouter } from "./routes/sources.js";
+import { verifyRouter } from "./routes/verify.js";
+import { integrityRouter } from "./routes/integrity.js";
+import { assistantRouter } from "./routes/assistant.js";
+import { streamRouter } from "./routes/stream.js";
+import { webhooksRouter } from "./routes/webhooks.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { rateLimitMiddleware } from "./middleware/rate-limit.js";
 import { openApiSpec } from "./openapi.js";
@@ -66,6 +72,9 @@ app.route("/v1/auth", authRouter);
 // Chat is public but rate-limited by IP (no API key needed for basic use)
 app.route("/v1/chat", chatRouter);
 
+// Sophex Startup Assistant — public (anonymous), rate-limited by IP
+app.route("/v1/assistant", assistantRouter);
+
 // Admin routes use JWT Bearer auth — registered before the API key middleware to bypass it
 app.route("/v1/admin", adminRouter);
 
@@ -93,6 +102,13 @@ app.route("/v1", sozialversicherungRouter);
 app.route("/v1", steuernRouter);
 app.route("/v1", genehmigungenRouter);
 app.route("/v1", handelsregisterRouter);
+app.route("/v1/sources", sourcesRouter);
+app.route("/v1/verify", verifyRouter);
+app.route("/v1/integrity", integrityRouter);
+
+// Real-time delivery — SSE stream (public, read-only) + webhook management (JWT)
+app.route("/v1/stream", streamRouter);
+app.route("/v1/webhooks", webhooksRouter);
 
 app.route("/mcp", mcpRouter);
 

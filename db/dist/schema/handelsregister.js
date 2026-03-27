@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, varchar, boolean, } from "drizzle-orm/pg-core";
+import { index, pgTable, serial, text, timestamp, varchar, boolean, } from "drizzle-orm/pg-core";
 // ─── Handelsregister & Notarpflichten (Silo 6) ───────────────────────────────
 //
 // Stores trade register obligations and notary requirements for German founders.
@@ -40,7 +40,10 @@ export const hrObligations = pgTable("hr_obligations", {
     scrapedAt: timestamp("scraped_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+    // BRIN index for freshness-based queries (DAT-53)
+    scrapedBrin: index("idx_hr_obligations_scraped_brin").on(t.scrapedAt),
+}));
 // ─── notary_costs ─────────────────────────────────────────────────────────────
 // One row per notarial act type with GNotKG-based cost examples.
 //

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, varchar, boolean, } from "drizzle-orm/pg-core";
+import { index, pgTable, serial, text, timestamp, varchar, boolean, } from "drizzle-orm/pg-core";
 // ─── Genehmigungen & branchenspezifische Auflagen (Silo 5) ───────────────────
 //
 // Stores permit requirements and industry-specific regulatory obligations for
@@ -54,7 +54,10 @@ export const permits = pgTable("permits", {
     scrapedAt: timestamp("scraped_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+    // BRIN index for freshness-based queries (DAT-53)
+    scrapedBrin: index("idx_permits_scraped_brin").on(t.scrapedAt),
+}));
 // ─── berufsgenossenschaften ───────────────────────────────────────────────────
 // One row per statutory accident insurance institution (Berufsgenossenschaft).
 // Every German employer is mandatory member of the relevant BG for their sector.

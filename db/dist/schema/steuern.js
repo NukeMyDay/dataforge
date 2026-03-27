@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, varchar, boolean, } from "drizzle-orm/pg-core";
+import { index, pgTable, serial, text, timestamp, varchar, boolean, } from "drizzle-orm/pg-core";
 // ─── Steuerliche Pflichten für Gründer (Silo 3) ───────────────────────────────
 //
 // Stores tax obligations for German business founders, broken down by Rechtsform.
@@ -41,7 +41,10 @@ export const taxObligations = pgTable("tax_obligations", {
     scrapedAt: timestamp("scraped_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+    // BRIN index for freshness-based queries (DAT-53)
+    scrapedBrin: index("idx_tax_obligations_scraped_brin").on(t.scrapedAt),
+}));
 // ─── tax_deadlines ────────────────────────────────────────────────────────────
 // Key filing deadlines and payment due dates for German business taxes.
 // Sources:

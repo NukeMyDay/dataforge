@@ -1335,6 +1335,144 @@ export declare const openApiSpec: {
                 };
             };
         };
+        readonly "/assistant": {
+            readonly post: {
+                readonly summary: "Sophex Startup Assistant";
+                readonly description: "Agentic AI assistant for German founders. Anonymous — no API key required. Rate-limited to 10 requests/minute per IP. Client sends the full messages array for stateless multi-turn conversations. The assistant queries the Sophex DB via 8 built-in tools and returns grounded answers in German with source citations.";
+                readonly tags: readonly ["Assistant"];
+                readonly requestBody: {
+                    readonly required: true;
+                    readonly content: {
+                        readonly "application/json": {
+                            readonly schema: {
+                                readonly type: "object";
+                                readonly required: readonly ["messages"];
+                                readonly properties: {
+                                    readonly messages: {
+                                        readonly type: "array";
+                                        readonly description: "Full conversation history (stateless multi-turn).";
+                                        readonly items: {
+                                            readonly type: "object";
+                                            readonly required: readonly ["role", "content"];
+                                            readonly properties: {
+                                                readonly role: {
+                                                    readonly type: "string";
+                                                    readonly enum: readonly ["user", "assistant"];
+                                                };
+                                                readonly content: {
+                                                    readonly type: "string";
+                                                    readonly minLength: 1;
+                                                };
+                                            };
+                                        };
+                                    };
+                                    readonly context: {
+                                        readonly type: "object";
+                                        readonly description: "Optional founder context injected into the system prompt.";
+                                        readonly properties: {
+                                            readonly bundesland: {
+                                                readonly type: "string";
+                                                readonly example: "Bayern";
+                                            };
+                                            readonly rechtsform: {
+                                                readonly type: "string";
+                                                readonly example: "gmbh";
+                                            };
+                                        };
+                                    };
+                                };
+                            };
+                        };
+                    };
+                };
+                readonly responses: {
+                    readonly "200": {
+                        readonly description: "Grounded answer with source citations";
+                        readonly content: {
+                            readonly "application/json": {
+                                readonly schema: {
+                                    readonly type: "object";
+                                    readonly properties: {
+                                        readonly data: {
+                                            readonly type: "object";
+                                            readonly properties: {
+                                                readonly reply: {
+                                                    readonly type: "string";
+                                                    readonly description: "AI-generated answer in German (or English if user wrote in English).";
+                                                };
+                                                readonly sources: {
+                                                    readonly type: "array";
+                                                    readonly description: "Source citations extracted from DB tool results.";
+                                                    readonly items: {
+                                                        readonly type: "object";
+                                                        readonly properties: {
+                                                            readonly label: {
+                                                                readonly type: "string";
+                                                            };
+                                                            readonly url: {
+                                                                readonly type: "string";
+                                                                readonly format: "uri";
+                                                            };
+                                                        };
+                                                    };
+                                                };
+                                                readonly tools_called: {
+                                                    readonly type: "array";
+                                                    readonly description: "Names of DB tools invoked during this request.";
+                                                    readonly items: {
+                                                        readonly type: "string";
+                                                    };
+                                                };
+                                            };
+                                        };
+                                        readonly meta: {
+                                            readonly type: "object";
+                                            readonly properties: {
+                                                readonly tokens: {
+                                                    readonly type: "object";
+                                                    readonly properties: {
+                                                        readonly input_tokens: {
+                                                            readonly type: "integer";
+                                                        };
+                                                        readonly output_tokens: {
+                                                            readonly type: "integer";
+                                                        };
+                                                    };
+                                                };
+                                                readonly model: {
+                                                    readonly type: "string";
+                                                    readonly example: "claude-sonnet-4-6";
+                                                };
+                                            };
+                                        };
+                                        readonly error: {
+                                            readonly nullable: true;
+                                            readonly example: null;
+                                        };
+                                    };
+                                };
+                            };
+                        };
+                    };
+                    readonly "400": {
+                        readonly description: "Invalid request or message too large";
+                        readonly content: {
+                            readonly "application/json": {
+                                readonly schema: {
+                                    readonly $ref: "#/components/schemas/Error";
+                                };
+                            };
+                        };
+                    };
+                    readonly "429": {
+                        readonly description: "Rate limit exceeded: max 10 requests per minute per IP";
+                    };
+                    readonly "503": {
+                        readonly description: "AI service not configured";
+                    };
+                };
+            };
+        };
     };
 };
 //# sourceMappingURL=openapi.d.ts.map
