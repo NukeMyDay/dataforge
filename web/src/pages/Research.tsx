@@ -2,15 +2,6 @@ import { Link } from "react-router-dom";
 
 const publishedArticles = [
   {
-    title: "Optimal Storage Architectures for Multi-Domain Structured Public Data",
-    abstract:
-      "A six-dimension benchmark of PostgreSQL 16, TimescaleDB, ClickHouse, and JSONB+GIN against 100K government data records. Verdict: PostgreSQL-first with TimescaleDB for changelog tables, ClickHouse for analytics only — plus two zero-migration quick wins delivering 20–30% improvement immediately.",
-    tag: "Data Engineering",
-    date: "March 27, 2026",
-    readTime: "~18 min",
-    href: "/research/storage-architectures",
-  },
-  {
     title: "Blockchain-verified Data Integrity for Government Data",
     abstract:
       "Tamper-evident, third-party-verifiable integrity guarantees for all Sophex data records using cryptographic Merkle trees and Bitcoin-backed OpenTimestamps anchoring — at near-zero cost via Merkle batching of up to 1,000 records per anchor.",

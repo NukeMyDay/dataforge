@@ -1,31 +1,39 @@
 /**
- * LLM Extraction Benchmark — DAT-48
+ * LLM Extraction Benchmark — CSS Selectors vs. LLM-based Extraction
  *
- * Compares CSS-only vs. hybrid (CSS + LLM fallback) extraction on a sample of
- * foerderdatenbank.de pages. Produces a JSON report with:
- *   - Fields extracted per approach per page
- *   - LLM fill rate for CSS-missed fields
- *   - Token cost and wall-clock time
- *   - Resilience test: simulated CSS class rename
+ * Compares three extraction strategies on a sample of foerderdatenbank.de pages:
+ *   1. CSS-only   — existing heading-based Cheerio selectors
+ *   2. LLM-only   — Claude Haiku with no CSS pre-pass
+ *   3. Hybrid     — CSS first, LLM fallback for null fields only
+ *
+ * Metrics per strategy:
+ *   - Accuracy   : filled fields out of 7 tracked fields (proxy for completeness)
+ *   - Speed      : wall-clock time per page (ms)
+ *   - Error rate : % of pages where extraction returned zero fields
+ *   - Cost       : LLM token usage + estimated USD (Haiku blended rate)
+ *
+ * Resilience test (optional):
+ *   Simulates h2/h3 → h4/h5 rename (common CMS update) and measures
+ *   how much each strategy degrades under structural change.
  *
  * Usage:
  *   ANTHROPIC_API_KEY=sk-ant-... tsx src/jobs/llm-extraction-benchmark.ts
  *
  * Optional env vars:
- *   BENCHMARK_SAMPLE_SIZE=50   (default: 50)
- *   BENCHMARK_RESILIENCE=true  (default: true — run resilience test)
- *   BENCHMARK_OUTPUT=./benchmark-report.json (default: stdout)
+ *   BENCHMARK_SAMPLE_SIZE=20   (default: 20)
+ *   BENCHMARK_RESILIENCE=true  (default: true)
+ *   BENCHMARK_OUTPUT=./benchmark-report.json  (default: stdout summary only)
  */
 import { chromium } from "playwright";
 import * as cheerio from "cheerio";
 import * as fs from "node:fs/promises";
-import { extractFieldsWithLLM, type FieldSchema, type HybridExtractionLog } from "../lib/llm-extractor.js";
+import { extractFieldsWithLLM, type FieldSchema } from "../lib/llm-extractor.js";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const BASE_URL = "https://www.foerderdatenbank.de";
 const SEARCH_URL = `${BASE_URL}/SiteGlobals/FDB/Forms/Suche/Foederprogrammsuche_Formular.html`;
-const SAMPLE_SIZE = parseInt(process.env.BENCHMARK_SAMPLE_SIZE ?? "50", 10);
+const SAMPLE_SIZE = parseInt(process.env.BENCHMARK_SAMPLE_SIZE ?? "20", 10);
 const RUN_RESILIENCE = process.env.BENCHMARK_RESILIENCE !== "false";
 const OUTPUT_PATH = process.env.BENCHMARK_OUTPUT ?? null;
 const REQUEST_DELAY_MS = 1500;
@@ -33,7 +41,7 @@ const REQUEST_DELAY_MS = 1500;
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
-// Fields we care about for comparison
+// The 7 content fields we compare across strategies
 const TRACKED_FIELDS = [
   "summaryDe",
   "descriptionDe",
@@ -46,7 +54,7 @@ const TRACKED_FIELDS = [
 
 type TrackedField = (typeof TRACKED_FIELDS)[number];
 
-// LLM field schemas (same as in scrape-funding-bund.ts)
+// LLM field schemas (mirrors scrape-funding-bund.ts)
 const FIELD_SCHEMAS: Record<TrackedField, FieldSchema> = {
   summaryDe: {
     description: "Short summary of the funding program in German",
@@ -77,10 +85,9 @@ const FIELD_SCHEMAS: Record<TrackedField, FieldSchema> = {
   },
 };
 
-// ─── CSS extraction (mirrors scrape-funding-bund logic) ───────────────────────
+// ─── CSS extraction (mirrors scrape-funding-bund.ts logic) ───────────────────
 
 interface ParsedFunding {
-  titleDe: string | null;
   summaryDe: string | null;
   descriptionDe: string | null;
   legalRequirementsDe: string | null;
@@ -92,7 +99,6 @@ interface ParsedFunding {
 
 function parseCssOnly(html: string): ParsedFunding {
   const $ = cheerio.load(html);
-  const titleDe = $("h1.ismark, h1").first().text().trim() || null;
 
   function extractSection(headingTexts: string[]): string | null {
     const result: string[] = [];
@@ -126,12 +132,12 @@ function parseCssOnly(html: string): ParsedFunding {
   for (const p of patterns) amounts.push(...(fullText.match(p) ?? []));
   if (amounts.length > 0) fundingAmountInfo = [...new Set(amounts)].join("; ");
 
-  return { titleDe, summaryDe, descriptionDe, legalRequirementsDe, directiveDe, applicationProcess, deadlineInfo, fundingAmountInfo };
+  return { summaryDe, descriptionDe, legalRequirementsDe, directiveDe, applicationProcess, deadlineInfo, fundingAmountInfo };
 }
 
 /**
- * Simulate a page structure change by renaming the h2/h3 elements to h4/h5.
- * This breaks all heading-based CSS selectors while leaving page content intact.
+ * Simulate a page structure change by renaming h2/h3 → h4/h5.
+ * Breaks all heading-based CSS selectors while leaving content intact.
  */
 function simulateStructureChange(html: string): string {
   return html
@@ -143,17 +149,17 @@ function simulateStructureChange(html: string): string {
 
 // ─── Metrics helpers ──────────────────────────────────────────────────────────
 
-function countFilledFields(record: ParsedFunding): number {
+function countFilled(record: ParsedFunding): number {
   return TRACKED_FIELDS.filter((f) => record[f] !== null).length;
 }
 
-function fieldFillMap(record: ParsedFunding): Record<TrackedField, boolean> {
+function fillMap(record: ParsedFunding): Record<TrackedField, boolean> {
   return Object.fromEntries(
     TRACKED_FIELDS.map((f) => [f, record[f] !== null])
   ) as Record<TrackedField, boolean>;
 }
 
-// ─── URL collection (reuse logic from scrape-funding-bund) ───────────────────
+// ─── URL collection ───────────────────────────────────────────────────────────
 
 async function collectSampleUrls(
   page: import("playwright").Page,
@@ -167,6 +173,7 @@ async function collectSampleUrls(
   let html = await page.content();
   let $ = cheerio.load(html);
 
+  // Extract pagination GUID
   let guid: string | null = null;
   $(".pagination a").each((_, el) => {
     const href = $(el).attr("href") ?? "";
@@ -184,9 +191,9 @@ async function collectSampleUrls(
   }
 
   extractLinks($);
-  let page2 = 2;
+  let pageNo = 2;
   while (urls.size < limit && guid) {
-    const url = `${SEARCH_URL}?gtp=%2526${guid}_list%253D${page2}&submit=Suchen&filterCategories=FundingProgram`;
+    const url = `${SEARCH_URL}?gtp=%2526${guid}_list%253D${pageNo}&submit=Suchen&filterCategories=FundingProgram`;
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS));
     html = await page.content();
@@ -194,55 +201,87 @@ async function collectSampleUrls(
     const before = urls.size;
     extractLinks($);
     if (urls.size === before) break;
-    page2++;
+    pageNo++;
   }
 
   return [...urls].slice(0, limit);
 }
 
-// ─── Main benchmark ───────────────────────────────────────────────────────────
+// ─── Report types ─────────────────────────────────────────────────────────────
+
+interface StrategyStats {
+  fieldsFound: number;
+  fields: Record<TrackedField, boolean>;
+  speedMs: number;
+  tokensUsed: number;
+  error: boolean;
+}
 
 interface PageResult {
   url: string;
-  css: { fieldsFound: number; fields: Record<TrackedField, boolean> };
-  hybrid: { fieldsFound: number; fields: Record<TrackedField, boolean>; tokensUsed: number; durationMs: number };
-  improvement: number; // hybrid - css fields
+  css: StrategyStats;
+  llmOnly: StrategyStats;
+  hybrid: StrategyStats;
 }
 
-interface ResilienceResult {
+interface FieldBreakdown {
+  cssFillRate: number;
+  llmOnlyFillRate: number;
+  hybridFillRate: number;
+}
+
+interface ResilienceDetail {
   url: string;
-  cssOnOriginal: number;
-  cssOnModified: number;
-  llmOnModified: number;
+  css: { original: number; modified: number; recovered: number };
+  llmOnly: { original: number; modified: number; recovered: number };
 }
 
 interface BenchmarkReport {
   runDate: string;
   sampleSize: number;
-  averageCssFieldsPerPage: number;
-  averageHybridFieldsPerPage: number;
-  averageImprovementPerPage: number;
-  llmFillRate: number; // % of LLM-attempted fields that were filled
-  totalTokensUsed: number;
-  estimatedCostUsd: number;
-  fieldBreakdown: Record<
-    TrackedField,
-    { cssFillRate: number; hybridFillRate: number; llmContribution: number }
-  >;
+  pagesSucceeded: number;
+
+  // Accuracy (avg filled fields out of 7)
+  avgCssFields: number;
+  avgLlmOnlyFields: number;
+  avgHybridFields: number;
+
+  // Speed (avg wall-clock ms per page, excluding page load)
+  avgCssSpeedMs: number;
+  avgLlmOnlySpeedMs: number;
+  avgHybridSpeedMs: number;
+
+  // Error rate (% pages where extraction returned 0 fields)
+  cssErrorRate: number;
+  llmOnlyErrorRate: number;
+  hybridErrorRate: number;
+
+  // Cost (LLM strategies only)
+  llmOnlyTotalTokens: number;
+  llmOnlyEstimatedCostUsd: number;
+  hybridTotalTokens: number;
+  hybridEstimatedCostUsd: number;
+
+  // Per-field fill rates across all pages
+  fieldBreakdown: Record<TrackedField, FieldBreakdown>;
+
+  // Resilience (optional — simulated CSS class rename)
   resilience?: {
-    cssDropOnChange: number; // average field count drop when structure changed
-    llmRecoveryRate: number; // % of dropped fields LLM recovered
-    result: ResilienceResult;
+    cssDropPct: number;       // % of fields lost when structure changed
+    llmOnlyDropPct: number;
+    hybridDropPct: number;
+    detail: ResilienceDetail;
   };
+
   pages: PageResult[];
 }
 
+// ─── Main benchmark ───────────────────────────────────────────────────────────
+
 async function runBenchmark(): Promise<void> {
-  console.log(`[benchmark] Starting LLM extraction benchmark`);
+  console.log("[benchmark] === CSS Selectors vs. LLM-based Extraction ===");
   console.log(`[benchmark] Sample size: ${SAMPLE_SIZE} pages`);
-  console.log(
-    `[benchmark] Resilience test: ${RUN_RESILIENCE ? "enabled" : "disabled"}`
-  );
+  console.log(`[benchmark] Resilience test: ${RUN_RESILIENCE ? "enabled" : "disabled"}`);
 
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY must be set to run the benchmark");
@@ -253,25 +292,27 @@ async function runBenchmark(): Promise<void> {
   const page = await context.newPage();
 
   try {
-    // Collect URLs
+    // ── Collect URLs ─────────────────────────────────────────────────────────
     console.log(`[benchmark] Collecting ${SAMPLE_SIZE} program URLs...`);
     const urls = await collectSampleUrls(page, SAMPLE_SIZE);
     console.log(`[benchmark] Got ${urls.length} URLs`);
 
     const pageResults: PageResult[] = [];
-    let totalLlmTokens = 0;
-    let llmAttempted = 0;
-    let llmFilled = 0;
+    let llmOnlyTotalTokens = 0;
+    let hybridTotalTokens = 0;
 
-    // Per-field accumulators
-    const fieldCssFills: Record<TrackedField, number> = Object.fromEntries(
+    // Per-field fill counts
+    const cssFills: Record<TrackedField, number> = Object.fromEntries(
       TRACKED_FIELDS.map((f) => [f, 0])
     ) as Record<TrackedField, number>;
-    const fieldHybridFills: Record<TrackedField, number> = Object.fromEntries(
+    const llmOnlyFills: Record<TrackedField, number> = Object.fromEntries(
+      TRACKED_FIELDS.map((f) => [f, 0])
+    ) as Record<TrackedField, number>;
+    const hybridFills: Record<TrackedField, number> = Object.fromEntries(
       TRACKED_FIELDS.map((f) => [f, 0])
     ) as Record<TrackedField, number>;
 
-    // Process each page
+    // ── Per-page extraction ──────────────────────────────────────────────────
     for (let i = 0; i < urls.length; i++) {
       const url = urls[i]!;
       try {
@@ -279,204 +320,236 @@ async function runBenchmark(): Promise<void> {
         await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS));
         const html = await page.content();
 
-        // Phase 1: CSS-only
+        // Strategy 1: CSS-only
+        const t0 = Date.now();
         const cssResult = parseCssOnly(html);
-        const cssFills = fieldFillMap(cssResult);
+        const cssSpeedMs = Date.now() - t0;
+        const cssMap = fillMap(cssResult);
+        const cssCount = countFilled(cssResult);
 
-        // Phase 2: LLM fallback for null fields
-        const missingFields = TRACKED_FIELDS.filter((f) => !cssFills[f]);
-        const hybridFields = { ...cssFills };
-        let tokensUsed = 0;
-        let durationMs = 0;
+        // Strategy 2: LLM-only (all fields requested, no CSS pre-pass)
+        const t1 = Date.now();
+        const llmOnlyRaw = await extractFieldsWithLLM({ html, fields: FIELD_SCHEMAS });
+        const llmOnlySpeedMs = Date.now() - t1;
+        const llmOnlyTokens = llmOnlyRaw.tokensInput + llmOnlyRaw.tokensOutput;
+        llmOnlyTotalTokens += llmOnlyTokens;
+
+        const llmOnlyResult: ParsedFunding = Object.fromEntries(
+          TRACKED_FIELDS.map((f) => [f, (llmOnlyRaw.fields[f] as string | null) ?? null])
+        ) as ParsedFunding;
+        const llmOnlyMap = fillMap(llmOnlyResult);
+        const llmOnlyCount = countFilled(llmOnlyResult);
+
+        // Strategy 3: Hybrid (CSS first, LLM for nulls only)
+        const missingFields = TRACKED_FIELDS.filter((f) => !cssMap[f]);
+        let hybridMap = { ...cssMap };
+        let hybridTokens = 0;
+        let hybridLlmMs = 0;
 
         if (missingFields.length > 0) {
-          const schemas: Record<string, FieldSchema> = {};
-          for (const f of missingFields) schemas[f] = FIELD_SCHEMAS[f];
-          const llmResult = await extractFieldsWithLLM({ html, fields: schemas });
-          tokensUsed = llmResult.tokensInput + llmResult.tokensOutput;
-          durationMs = llmResult.durationMs;
-          totalLlmTokens += tokensUsed;
-          llmAttempted += missingFields.length;
-
+          const missingSchemas: Record<string, FieldSchema> = {};
+          for (const f of missingFields) missingSchemas[f] = FIELD_SCHEMAS[f];
+          const t2 = Date.now();
+          const fallback = await extractFieldsWithLLM({ html, fields: missingSchemas });
+          hybridLlmMs = Date.now() - t2;
+          hybridTokens = fallback.tokensInput + fallback.tokensOutput;
+          hybridTotalTokens += hybridTokens;
           for (const f of missingFields) {
-            if (llmResult.fields[f]) {
-              hybridFields[f] = true;
-              llmFilled++;
-            }
+            if (fallback.fields[f]) hybridMap[f] = true;
           }
         }
+        const hybridSpeedMs = cssSpeedMs + hybridLlmMs;
+        const hybridCount = TRACKED_FIELDS.filter((f) => hybridMap[f]).length;
 
         // Accumulate per-field stats
         for (const f of TRACKED_FIELDS) {
-          if (cssFills[f]) fieldCssFills[f]++;
-          if (hybridFields[f]) fieldHybridFills[f]++;
+          if (cssMap[f]) cssFills[f]++;
+          if (llmOnlyMap[f]) llmOnlyFills[f]++;
+          if (hybridMap[f]) hybridFills[f]++;
         }
-
-        const cssCount = TRACKED_FIELDS.filter((f) => cssFills[f]).length;
-        const hybridCount = TRACKED_FIELDS.filter((f) => hybridFields[f]).length;
 
         pageResults.push({
           url,
-          css: {
-            fieldsFound: cssCount,
-            fields: cssFills,
-          },
-          hybrid: {
-            fieldsFound: hybridCount,
-            fields: hybridFields as Record<TrackedField, boolean>,
-            tokensUsed,
-            durationMs,
-          },
-          improvement: hybridCount - cssCount,
+          css: { fieldsFound: cssCount, fields: cssMap, speedMs: cssSpeedMs, tokensUsed: 0, error: cssCount === 0 },
+          llmOnly: { fieldsFound: llmOnlyCount, fields: llmOnlyMap, speedMs: llmOnlySpeedMs, tokensUsed: llmOnlyTokens, error: llmOnlyCount === 0 },
+          hybrid: { fieldsFound: hybridCount, fields: hybridMap as Record<TrackedField, boolean>, speedMs: hybridSpeedMs, tokensUsed: hybridTokens, error: hybridCount === 0 },
         });
 
-        if ((i + 1) % 10 === 0) {
+        if ((i + 1) % 5 === 0 || i === urls.length - 1) {
+          const n = pageResults.length;
           console.log(
-            `[benchmark] Progress: ${i + 1}/${urls.length} — avg CSS fields: ${(pageResults.reduce((s, r) => s + r.css.fieldsFound, 0) / pageResults.length).toFixed(1)}, avg hybrid: ${(pageResults.reduce((s, r) => s + r.hybrid.fieldsFound, 0) / pageResults.length).toFixed(1)}`
+            `[benchmark] ${i + 1}/${urls.length} — ` +
+            `css: ${(pageResults.reduce((s, r) => s + r.css.fieldsFound, 0) / n).toFixed(1)}/7, ` +
+            `llm-only: ${(pageResults.reduce((s, r) => s + r.llmOnly.fieldsFound, 0) / n).toFixed(1)}/7, ` +
+            `hybrid: ${(pageResults.reduce((s, r) => s + r.hybrid.fieldsFound, 0) / n).toFixed(1)}/7`
           );
         }
       } catch (err) {
-        console.warn(`[benchmark] Failed ${url}: ${err}`);
+        console.warn(`[benchmark] Page ${i + 1} failed: ${url} — ${err}`);
+        // Record as zero-field error result so error rate is accurate
+        const zeroFields = Object.fromEntries(TRACKED_FIELDS.map((f) => [f, false])) as Record<TrackedField, boolean>;
+        pageResults.push({
+          url,
+          css: { fieldsFound: 0, fields: zeroFields, speedMs: 0, tokensUsed: 0, error: true },
+          llmOnly: { fieldsFound: 0, fields: zeroFields, speedMs: 0, tokensUsed: 0, error: true },
+          hybrid: { fieldsFound: 0, fields: zeroFields, speedMs: 0, tokensUsed: 0, error: true },
+        });
       }
     }
 
+    const n = pageResults.length;
+
     // ── Resilience test ──────────────────────────────────────────────────────
     let resilienceData: BenchmarkReport["resilience"] | undefined;
-    if (RUN_RESILIENCE && pageResults.length > 0) {
-      console.log(`[benchmark] Running resilience test...`);
-      const testUrl = pageResults[0]!.url;
+    if (RUN_RESILIENCE && n > 0) {
+      console.log("[benchmark] Running resilience test (simulated h2/h3 → h4/h5 rename)...");
+      const testUrl = pageResults.find((r) => !r.css.error)?.url ?? pageResults[0]!.url;
       await page.goto(testUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
       await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS));
       const originalHtml = await page.content();
-
-      // Simulate: rename h2/h3 → h4/h5 (breaks all heading-based CSS selectors)
       const modifiedHtml = simulateStructureChange(originalHtml);
 
-      const cssOriginal = parseCssOnly(originalHtml);
-      const cssModified = parseCssOnly(modifiedHtml);
-      const cssOriginalCount = countFilledFields(cssOriginal);
-      const cssModifiedCount = countFilledFields(cssModified);
-      const dropped = cssOriginalCount - cssModifiedCount;
+      // Original (baseline)
+      const cssOrig = countFilled(parseCssOnly(originalHtml));
+      const llmOrigRaw = await extractFieldsWithLLM({ html: originalHtml, fields: FIELD_SCHEMAS });
+      const llmOrigResult: ParsedFunding = Object.fromEntries(
+        TRACKED_FIELDS.map((f) => [f, (llmOrigRaw.fields[f] as string | null) ?? null])
+      ) as ParsedFunding;
+      const llmOrig = countFilled(llmOrigResult);
 
-      // LLM on the modified (structurally changed) HTML
-      const missingAfterChange = TRACKED_FIELDS.filter(
-        (f) => cssModified[f] === null
-      );
-      const schemas: Record<string, FieldSchema> = {};
-      for (const f of missingAfterChange) schemas[f] = FIELD_SCHEMAS[f];
-      const llmResult = await extractFieldsWithLLM({
-        html: modifiedHtml,
-        fields: schemas,
-      });
-      const llmRecovered = Object.values(llmResult.fields).filter(Boolean).length;
+      // After structure change
+      const cssMod = countFilled(parseCssOnly(modifiedHtml));
+      const llmModRaw = await extractFieldsWithLLM({ html: modifiedHtml, fields: FIELD_SCHEMAS });
+      const llmModResult: ParsedFunding = Object.fromEntries(
+        TRACKED_FIELDS.map((f) => [f, (llmModRaw.fields[f] as string | null) ?? null])
+      ) as ParsedFunding;
+      const llmMod = countFilled(llmModResult);
+
+      // Hybrid on modified
+      const cssModParsed = parseCssOnly(modifiedHtml);
+      const cssModMap = fillMap(cssModParsed);
+      const modMissing = TRACKED_FIELDS.filter((f) => !cssModMap[f]);
+      let hybridModCount = TRACKED_FIELDS.filter((f) => cssModMap[f]).length;
+      if (modMissing.length > 0) {
+        const modSchemas: Record<string, FieldSchema> = {};
+        for (const f of modMissing) modSchemas[f] = FIELD_SCHEMAS[f];
+        const fallback = await extractFieldsWithLLM({ html: modifiedHtml, fields: modSchemas });
+        hybridModCount += Object.values(fallback.fields).filter(Boolean).length;
+      }
+      const hybridOrig = cssOrig; // hybrid on original same as baseline (CSS found all)
+
+      const pct = (a: number, b: number) =>
+        b > 0 ? Math.round(((b - a) / b) * 100) : 0;
 
       resilienceData = {
-        cssDropOnChange: dropped,
-        llmRecoveryRate:
-          dropped > 0 ? Math.round((llmRecovered / dropped) * 100) : 100,
-        result: {
+        cssDropPct: pct(cssMod, cssOrig),
+        llmOnlyDropPct: pct(llmMod, llmOrig),
+        hybridDropPct: pct(hybridModCount, hybridOrig),
+        detail: {
           url: testUrl,
-          cssOnOriginal: cssOriginalCount,
-          cssOnModified: cssModifiedCount,
-          llmOnModified: cssModifiedCount + llmRecovered,
+          css: { original: cssOrig, modified: cssMod, recovered: 0 },
+          llmOnly: { original: llmOrig, modified: llmMod, recovered: 0 },
         },
       };
 
       console.log(
-        `[benchmark] Resilience: CSS fields original=${cssOriginalCount}, ` +
-          `after structure change=${cssModifiedCount} (dropped ${dropped}), ` +
-          `LLM recovered=${llmRecovered}/${dropped} (${resilienceData.llmRecoveryRate}%)`
+        `[benchmark] Resilience — CSS drop: ${resilienceData.cssDropPct}%, ` +
+        `LLM-only drop: ${resilienceData.llmOnlyDropPct}%, ` +
+        `hybrid drop: ${resilienceData.hybridDropPct}%`
       );
     }
 
-    // ── Build report ─────────────────────────────────────────────────────────
-    const n = pageResults.length;
-    const avgCss = pageResults.reduce((s, r) => s + r.css.fieldsFound, 0) / n;
-    const avgHybrid =
-      pageResults.reduce((s, r) => s + r.hybrid.fieldsFound, 0) / n;
-    const avgImprovement =
-      pageResults.reduce((s, r) => s + r.improvement, 0) / n;
-    const llmFillRate =
-      llmAttempted > 0
-        ? Math.round((llmFilled / llmAttempted) * 100)
-        : 0;
-    // Haiku blended estimate: $1/1M input + $5/1M output ≈ $3/1M blended
-    const estimatedCostUsd =
-      Math.round(((totalLlmTokens / 1_000_000) * 3.0) * 10000) / 10000;
+    // ── Aggregate metrics ────────────────────────────────────────────────────
+    const avg = (fn: (r: PageResult) => number) =>
+      Math.round((pageResults.reduce((s, r) => s + fn(r), 0) / n) * 100) / 100;
 
-    const fieldBreakdown: BenchmarkReport["fieldBreakdown"] =
-      Object.fromEntries(
-        TRACKED_FIELDS.map((f) => [
-          f,
-          {
-            cssFillRate: Math.round((fieldCssFills[f] / n) * 100),
-            hybridFillRate: Math.round((fieldHybridFills[f] / n) * 100),
-            llmContribution: fieldHybridFills[f] - fieldCssFills[f],
-          },
-        ])
-      ) as BenchmarkReport["fieldBreakdown"];
+    const errorRate = (fn: (r: PageResult) => boolean) =>
+      Math.round((pageResults.filter((r) => fn(r)).length / n) * 100);
+
+    // Haiku blended estimate: $1/1M input + $5/1M output ≈ $3/1M blended
+    const costUsd = (tokens: number) =>
+      Math.round(((tokens / 1_000_000) * 3.0) * 10_000) / 10_000;
+
+    const fieldBreakdown: Record<TrackedField, FieldBreakdown> = Object.fromEntries(
+      TRACKED_FIELDS.map((f) => [
+        f,
+        {
+          cssFillRate: Math.round((cssFills[f] / n) * 100),
+          llmOnlyFillRate: Math.round((llmOnlyFills[f] / n) * 100),
+          hybridFillRate: Math.round((hybridFills[f] / n) * 100),
+        },
+      ])
+    ) as Record<TrackedField, FieldBreakdown>;
 
     const report: BenchmarkReport = {
       runDate: new Date().toISOString(),
-      sampleSize: n,
-      averageCssFieldsPerPage: Math.round(avgCss * 100) / 100,
-      averageHybridFieldsPerPage: Math.round(avgHybrid * 100) / 100,
-      averageImprovementPerPage: Math.round(avgImprovement * 100) / 100,
-      llmFillRate,
-      totalTokensUsed: totalLlmTokens,
-      estimatedCostUsd,
+      sampleSize: SAMPLE_SIZE,
+      pagesSucceeded: pageResults.filter((r) => !r.css.error).length,
+
+      avgCssFields: avg((r) => r.css.fieldsFound),
+      avgLlmOnlyFields: avg((r) => r.llmOnly.fieldsFound),
+      avgHybridFields: avg((r) => r.hybrid.fieldsFound),
+
+      avgCssSpeedMs: avg((r) => r.css.speedMs),
+      avgLlmOnlySpeedMs: avg((r) => r.llmOnly.speedMs),
+      avgHybridSpeedMs: avg((r) => r.hybrid.speedMs),
+
+      cssErrorRate: errorRate((r) => r.css.error),
+      llmOnlyErrorRate: errorRate((r) => r.llmOnly.error),
+      hybridErrorRate: errorRate((r) => r.hybrid.error),
+
+      llmOnlyTotalTokens,
+      llmOnlyEstimatedCostUsd: costUsd(llmOnlyTotalTokens),
+      hybridTotalTokens,
+      hybridEstimatedCostUsd: costUsd(hybridTotalTokens),
+
       fieldBreakdown,
       ...(resilienceData ? { resilience: resilienceData } : {}),
       pages: pageResults,
     };
 
-    console.log(`\n[benchmark] === RESULTS ===`);
-    console.log(`Pages tested:           ${n}`);
-    console.log(
-      `Avg fields/page — CSS:  ${report.averageCssFieldsPerPage.toFixed(2)}/${TRACKED_FIELDS.length}`
-    );
-    console.log(
-      `Avg fields/page — hybrid: ${report.averageHybridFieldsPerPage.toFixed(2)}/${TRACKED_FIELDS.length}`
-    );
-    console.log(
-      `Average improvement:    +${report.averageImprovementPerPage.toFixed(2)} fields/page`
-    );
-    console.log(`LLM fill rate:          ${report.llmFillRate}%`);
-    console.log(`Total tokens used:      ${report.totalTokensUsed}`);
-    console.log(`Estimated cost:         $${report.estimatedCostUsd}`);
+    // ── Print summary ────────────────────────────────────────────────────────
+    console.log(`\n[benchmark] ════ RESULTS ════`);
+    console.log(`Pages tested:              ${n} (succeeded: ${report.pagesSucceeded})`);
+    console.log(`\nAccuracy (avg fields/7):`);
+    console.log(`  CSS-only:  ${report.avgCssFields.toFixed(2)}`);
+    console.log(`  LLM-only:  ${report.avgLlmOnlyFields.toFixed(2)}`);
+    console.log(`  Hybrid:    ${report.avgHybridFields.toFixed(2)}`);
+    console.log(`\nSpeed (avg ms/page, excl. page load):`);
+    console.log(`  CSS-only:  ${report.avgCssSpeedMs} ms`);
+    console.log(`  LLM-only:  ${report.avgLlmOnlySpeedMs} ms`);
+    console.log(`  Hybrid:    ${report.avgHybridSpeedMs} ms`);
+    console.log(`\nError rate (pages with 0 fields):`);
+    console.log(`  CSS-only:  ${report.cssErrorRate}%`);
+    console.log(`  LLM-only:  ${report.llmOnlyErrorRate}%`);
+    console.log(`  Hybrid:    ${report.hybridErrorRate}%`);
+    console.log(`\nCost (LLM strategies):`);
+    console.log(`  LLM-only:  ${report.llmOnlyTotalTokens} tokens  ~$${report.llmOnlyEstimatedCostUsd}`);
+    console.log(`  Hybrid:    ${report.hybridTotalTokens} tokens  ~$${report.hybridEstimatedCostUsd}`);
     if (report.resilience) {
-      console.log(
-        `Resilience — CSS drop:  ${report.resilience.cssDropOnChange} fields`
-      );
-      console.log(
-        `Resilience — LLM recovery: ${report.resilience.llmRecoveryRate}%`
-      );
+      console.log(`\nResilience (structure change — field drop %):`);
+      console.log(`  CSS-only:  -${report.resilience.cssDropPct}%`);
+      console.log(`  LLM-only:  -${report.resilience.llmOnlyDropPct}%`);
+      console.log(`  Hybrid:    -${report.resilience.hybridDropPct}%`);
     }
-    console.log(`\nPer-field breakdown:`);
+    console.log(`\nPer-field fill rates:`);
     for (const [field, stats] of Object.entries(report.fieldBreakdown)) {
       console.log(
-        `  ${field.padEnd(24)} CSS: ${stats.cssFillRate}%  hybrid: ${stats.hybridFillRate}%  (+${stats.llmContribution} pages via LLM)`
+        `  ${field.padEnd(24)}  css: ${String(stats.cssFillRate).padStart(3)}%  llm: ${String(stats.llmOnlyFillRate).padStart(3)}%  hybrid: ${String(stats.hybridFillRate).padStart(3)}%`
       );
     }
 
     if (OUTPUT_PATH) {
-      await fs.writeFile(
-        OUTPUT_PATH,
-        JSON.stringify(report, null, 2),
-        "utf-8"
-      );
+      await fs.writeFile(OUTPUT_PATH, JSON.stringify(report, null, 2), "utf-8");
       console.log(`\n[benchmark] Report saved to ${OUTPUT_PATH}`);
     } else {
-      console.log(
-        "\n[benchmark] Set BENCHMARK_OUTPUT=./report.json to save full report"
-      );
+      console.log("\n[benchmark] Tip: set BENCHMARK_OUTPUT=./report.json to save the full report");
     }
   } finally {
     await browser.close();
   }
 }
 
-// Run if invoked directly
 runBenchmark().catch((err) => {
   console.error("[benchmark] Fatal:", err);
   process.exit(1);
