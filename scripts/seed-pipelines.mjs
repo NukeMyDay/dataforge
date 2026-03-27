@@ -68,6 +68,37 @@ const PIPELINES = [
     schedule: "0 5 * * 3", // Wednesday 05:00 UTC
     enabled: true,
   },
+  // ─── Gründungs vertical (Silo 2) ─────────────────────────────────────────
+  {
+    name: "scrape-rechtsformen",
+    description: "German legal entity types (Rechtsformen + Gewerbeanmeldung) from existenzgruender.de and service.bund.de",
+    schedule: "0 3 * * 1", // Monday 03:00 UTC
+    enabled: true,
+  },
+  {
+    name: "scrape-sv",
+    description: "German social security contribution rates and obligations from DRV/GKV",
+    schedule: "0 4 * * 1", // Monday 04:00 UTC
+    enabled: true,
+  },
+  {
+    name: "scrape-steuern",
+    description: "German tax obligations and deadlines from BMF/ELSTER",
+    schedule: "0 5 * * 1", // Monday 05:00 UTC
+    enabled: true,
+  },
+  {
+    name: "scrape-genehmigungen",
+    description: "German business permits and Berufsgenossenschaft obligations",
+    schedule: "0 6 * * 1", // Monday 06:00 UTC
+    enabled: true,
+  },
+  {
+    name: "scrape-funding-bund",
+    description: "German federal funding programs from foerderdatenbank.de",
+    schedule: "0 2 * * 0", // Sunday 02:00 UTC
+    enabled: true,
+  },
 ];
 
 const pool = createPool();

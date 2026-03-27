@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { eq, desc, count, ilike, sql } from "drizzle-orm";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { db, pipelines, pipelineRuns, apiKeys, users } from "../db.js";
 import { requireJwt, requireAdmin } from "../middleware/jwt.js";
 import { sendJob } from "../boss.js";
@@ -238,4 +240,50 @@ adminRouter.patch("/users/:id", async (c) => {
   }
 
   return c.json({ data: updated, meta: null, error: null });
+});
+
+// POST /v1/admin/jobs/trigger — enqueue a pg-boss job by name without requiring a pipeline DB record.
+// Useful for running scrapers whose pipeline records haven't been seeded yet.
+adminRouter.post("/jobs/trigger", async (c) => {
+  const body = await c.req.json<{ name?: string; data?: Record<string, unknown> }>().catch(() => null);
+  if (!body?.name || typeof body.name !== "string") {
+    return c.json({ data: null, meta: null, error: "Missing or invalid 'name' field" }, 400);
+  }
+
+  const jobId = await sendJob(body.name, body.data ?? {});
+  return c.json({ data: { jobId, name: body.name }, meta: null, error: null }, 202);
+});
+
+// POST /v1/admin/migrate/:filename — run a specific migration SQL file from db/migrations/.
+// File must be a plain .sql file. Only files within the migrations directory are allowed.
+// Uses CREATE TABLE IF NOT EXISTS pattern so it is safe to run multiple times.
+adminRouter.post("/migrate/:filename", async (c) => {
+  const filename = c.req.param("filename");
+  if (!filename.endsWith(".sql") || filename.includes("/") || filename.includes("..")) {
+    return c.json({ data: null, meta: null, error: "Invalid migration filename" }, 400);
+  }
+
+  // Resolve path relative to the app root (matches the Docker container working directory)
+  const migrationsDir = join(process.cwd(), "db", "migrations");
+  const filePath = join(migrationsDir, filename);
+
+  let migrationSql: string;
+  try {
+    migrationSql = await readFile(filePath, "utf-8");
+  } catch {
+    return c.json({ data: null, meta: null, error: `Migration file not found: ${filename}` }, 404);
+  }
+
+  // Split into individual statements and execute each one.
+  // Filter blank/comment-only lines before checking for statement content.
+  const statements = migrationSql
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && !s.startsWith("--"));
+
+  for (const statement of statements) {
+    await db.execute(sql.raw(statement));
+  }
+
+  return c.json({ data: { filename, statementsApplied: statements.length }, meta: null, error: null }, 200);
 });

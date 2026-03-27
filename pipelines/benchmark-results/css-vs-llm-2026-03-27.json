@@ -1,0 +1,1035 @@
+{
+  "runDate": "2026-03-27T16:37:29.294Z",
+  "sampleSize": 20,
+  "pagesSucceeded": 20,
+  "avgCssFields": 5.25,
+  "avgLlmOnlyFields": 4.2,
+  "avgHybridFields": 6.45,
+  "avgCssSpeedMs": 28.55,
+  "avgLlmOnlySpeedMs": 8915.2,
+  "avgHybridSpeedMs": 2151.5,
+  "cssErrorRate": 0,
+  "llmOnlyErrorRate": 35,
+  "hybridErrorRate": 0,
+  "llmOnlyTotalTokens": 104223,
+  "llmOnlyEstimatedCostUsd": 0.3127,
+  "hybridTotalTokens": 85124,
+  "hybridEstimatedCostUsd": 0.2554,
+  "fieldBreakdown": {
+    "summaryDe": {
+      "cssFillRate": 95,
+      "llmOnlyFillRate": 65,
+      "hybridFillRate": 100
+    },
+    "descriptionDe": {
+      "cssFillRate": 95,
+      "llmOnlyFillRate": 65,
+      "hybridFillRate": 100
+    },
+    "legalRequirementsDe": {
+      "cssFillRate": 100,
+      "llmOnlyFillRate": 65,
+      "hybridFillRate": 100
+    },
+    "directiveDe": {
+      "cssFillRate": 95,
+      "llmOnlyFillRate": 60,
+      "hybridFillRate": 95
+    },
+    "applicationProcess": {
+      "cssFillRate": 90,
+      "llmOnlyFillRate": 65,
+      "hybridFillRate": 100
+    },
+    "deadlineInfo": {
+      "cssFillRate": 0,
+      "llmOnlyFillRate": 35,
+      "hybridFillRate": 55
+    },
+    "fundingAmountInfo": {
+      "cssFillRate": 50,
+      "llmOnlyFillRate": 65,
+      "hybridFillRate": 95
+    }
+  },
+  "resilience": {
+    "cssDropPct": 100,
+    "llmOnlyDropPct": 0,
+    "hybridDropPct": -40,
+    "detail": {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/buergschaft-sachsen-beteiligung.html",
+      "css": {
+        "original": 5,
+        "modified": 0,
+        "recovered": 0
+      },
+      "llmOnly": {
+        "original": 7,
+        "modified": 7,
+        "recovered": 0
+      }
+    }
+  },
+  "pages": [
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/buergschaft-sachsen-beteiligung.html",
+      "css": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": false,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 119,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 10195,
+        "tokensUsed": 5421,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 2592,
+        "tokensUsed": 4429,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/NRW/garantien-von-beteiligungen-an-kmu-der-gewerbliche.html",
+      "css": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 58,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 7268,
+        "tokensUsed": 5345,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 1948,
+        "tokensUsed": 4586,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/foerderrichtlinie-ausgleichszulage-sachsen.html",
+      "css": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 30,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 9043,
+        "tokensUsed": 5877,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 2322,
+        "tokensUsed": 4937,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/rettung-umstrukturier-kleine-mittlere-unternehmen.html",
+      "css": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 17,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 8889,
+        "tokensUsed": 5588,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 647,
+        "tokensUsed": 4398,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/investitionen-teilhabe.html",
+      "css": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 29,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 0,
+        "fields": {
+          "summaryDe": false,
+          "descriptionDe": false,
+          "legalRequirementsDe": false,
+          "directiveDe": false,
+          "applicationProcess": false,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 9948,
+        "tokensUsed": 5585,
+        "error": true
+      },
+      "hybrid": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 719,
+        "tokensUsed": 4380,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/foerderung-der-kommunale-praevention-rl-komm-praev.html",
+      "css": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 35,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 9301,
+        "tokensUsed": 5333,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 3626,
+        "tokensUsed": 4490,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/foerderung-sicherung-weiterentwickl-qualitaet-kita.html",
+      "css": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 40,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 8548,
+        "tokensUsed": 5571,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 4464,
+        "tokensUsed": 4718,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Thueringen/guw-thueringen.html",
+      "css": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 11,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 6421,
+        "tokensUsed": 3793,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 722,
+        "tokensUsed": 2945,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Thueringen/beteiligungen-thueringen-mbg-express.html",
+      "css": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 16,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 9224,
+        "tokensUsed": 4206,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 1744,
+        "tokensUsed": 3313,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Baden-Wuerttemberg/kompetenzen-verlaesslich-voranbringen-vwv-kolibri.html",
+      "css": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 17,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 0,
+        "fields": {
+          "summaryDe": false,
+          "descriptionDe": false,
+          "legalRequirementsDe": false,
+          "directiveDe": false,
+          "applicationProcess": false,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 9329,
+        "tokensUsed": 5611,
+        "error": true
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 2260,
+        "tokensUsed": 4575,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Thueringen/beteiligungen-mbg-tueringen.html",
+      "css": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 16,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 9445,
+        "tokensUsed": 4564,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 2620,
+        "tokensUsed": 3547,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/internationale-zusammenarbeit.html",
+      "css": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 17,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 0,
+        "fields": {
+          "summaryDe": false,
+          "descriptionDe": false,
+          "legalRequirementsDe": false,
+          "directiveDe": false,
+          "applicationProcess": false,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 9776,
+        "tokensUsed": 5560,
+        "error": true
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 1896,
+        "tokensUsed": 4466,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/aeltere-menschen.html",
+      "css": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 21,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 0,
+        "fields": {
+          "summaryDe": false,
+          "descriptionDe": false,
+          "legalRequirementsDe": false,
+          "directiveDe": false,
+          "applicationProcess": false,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 10239,
+        "tokensUsed": 5637,
+        "error": true
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 2073,
+        "tokensUsed": 4525,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/frl-sed-opferverbaende.html",
+      "css": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 38,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 7924,
+        "tokensUsed": 5352,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 1292,
+        "tokensUsed": 4409,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/gesundheit-praevention-beratung-hospiz-palliativ.html",
+      "css": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 20,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 10555,
+        "tokensUsed": 5700,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 718,
+        "tokensUsed": 4516,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Sachsen/familienfoerderung-sachsen.html",
+      "css": {
+        "fieldsFound": 4,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": false,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 18,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 0,
+        "fields": {
+          "summaryDe": false,
+          "descriptionDe": false,
+          "legalRequirementsDe": false,
+          "directiveDe": false,
+          "applicationProcess": false,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 9820,
+        "tokensUsed": 5642,
+        "error": true
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 4053,
+        "tokensUsed": 4867,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Bremen/foerd-modernisierung-instandsetz-privat-gebaeude.html",
+      "css": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 20,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 0,
+        "fields": {
+          "summaryDe": false,
+          "descriptionDe": false,
+          "legalRequirementsDe": false,
+          "directiveDe": false,
+          "applicationProcess": false,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 9583,
+        "tokensUsed": 5816,
+        "error": true
+      },
+      "hybrid": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 676,
+        "tokensUsed": 4611,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Bremen/gemeinnuetzige-projekte-zu-umwelt-und-naturschutz.html",
+      "css": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 20,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 0,
+        "fields": {
+          "summaryDe": false,
+          "descriptionDe": false,
+          "legalRequirementsDe": false,
+          "directiveDe": false,
+          "applicationProcess": false,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 8925,
+        "tokensUsed": 5528,
+        "error": true
+      },
+      "hybrid": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 2027,
+        "tokensUsed": 4360,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Hamburg/foerderung-der-berufsvorbereitung-benachteiligter.html",
+      "css": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 16,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 7845,
+        "tokensUsed": 5305,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 7,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": true,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 1366,
+        "tokensUsed": 4411,
+        "error": false
+      }
+    },
+    {
+      "url": "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/Land/Rheinland-Pfalz/kommunalkredite-unterbringung-von-fluechtlingen.html",
+      "css": {
+        "fieldsFound": 2,
+        "fields": {
+          "summaryDe": false,
+          "descriptionDe": false,
+          "legalRequirementsDe": true,
+          "directiveDe": false,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": false
+        },
+        "speedMs": 13,
+        "tokensUsed": 0,
+        "error": false
+      },
+      "llmOnly": {
+        "fieldsFound": 5,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": false,
+          "applicationProcess": true,
+          "deadlineInfo": false,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 6026,
+        "tokensUsed": 2789,
+        "error": false
+      },
+      "hybrid": {
+        "fieldsFound": 6,
+        "fields": {
+          "summaryDe": true,
+          "descriptionDe": true,
+          "legalRequirementsDe": true,
+          "directiveDe": false,
+          "applicationProcess": true,
+          "deadlineInfo": true,
+          "fundingAmountInfo": true
+        },
+        "speedMs": 5265,
+        "tokensUsed": 2641,
+        "error": false
+      }
+    }
+  ]
+}

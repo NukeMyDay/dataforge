@@ -36,16 +36,19 @@ export default function ResearchAiAssistedExtractionPage() {
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Abstract</h2>
         <p className="text-gray-700 leading-relaxed">
           German government web portals are built on CMS platforms with divergent structural conventions, causing
-          CSS-selector-based scrapers to silently fail on 25–35% of pages. This paper presents the design,
-          implementation, and benchmark results of a hybrid extraction pipeline that uses CSS selectors as the
-          primary extraction layer and Claude Haiku as a semantic fallback for fields that CSS fails to capture.
-          Tested against a 50-page sample from <em>foerderdatenbank.de</em>, the hybrid approach increases
-          mean field coverage from ~66% to ~87% — an improvement of 21 percentage points — at an estimated
-          marginal cost of $4.90 per full corpus scrape (~2,600 programs). In a simulated CMS restructure
-          scenario, the LLM layer recovers 94% of fields that CSS loses entirely. We describe the architecture
-          of the <code>mergeWithLlmFallback()</code> utility, the prompt engineering decisions, and the
-          cost-control mechanisms, and offer recommendations for when to deploy CSS-only, hybrid, or LLM-first
-          extraction strategies.
+          CSS-selector-based scrapers to silently fail on a meaningful fraction of pages. This paper presents
+          the design, implementation, and benchmark results of three extraction strategies — CSS-only,
+          LLM-only, and a hybrid pipeline that uses CSS selectors as the primary extraction layer and Claude
+          Haiku as a semantic fallback — evaluated against a 20-page sample from <em>foerderdatenbank.de</em>.
+          CSS-only achieves 75.0% mean field coverage with 0% error rate at sub-millisecond cost per page.
+          LLM-only achieves 60.0% mean coverage but produces a complete extraction failure (zero fields) on
+          35% of pages — a critical reliability problem. The hybrid approach achieves 92.1% mean field
+          coverage with 0% error rate, a 17.1 percentage-point improvement over CSS-only, at an estimated
+          cost of $33.20 per full corpus scrape (~2,600 programs). The most striking finding is that
+          <code>deadlineInfo</code> has a 0% CSS fill rate across all tested pages, making LLM augmentation
+          effectively mandatory for that field. In a simulated CMS restructure, CSS drops 100% of its fields
+          while the hybrid maintains full extraction. We describe the architecture of the{" "}
+          <code>mergeWithLlmFallback()</code> utility and offer decision criteria for deploying each strategy.
         </p>
       </section>
 
@@ -102,8 +105,11 @@ export default function ResearchAiAssistedExtractionPage() {
         <p>
           The CSS extractor uses a combination of heading-text matching (find h2/h3 with text matching
           "Kurztext", "Volltext", etc., then collect sibling paragraphs), dt/dd parsing for metadata fields,
-          and regex patterns for monetary amounts. Across a 50-page benchmark sample, this approach achieves
-          a mean fill rate of approximately 66% — roughly 4.6 of 7 fields per page.
+          and regex patterns for monetary amounts. Across the 20-page benchmark sample, this approach achieves
+          a mean fill rate of 75.0% — 5.25 of 7 fields per page. The headline number is flattering: CSS
+          reliably extracts five of seven fields (90–100% fill rates), but fails completely on{" "}
+          <code>deadlineInfo</code> (0%) and partially on <code>fundingAmountInfo</code> (50% — the
+          regex-based field).
         </p>
         <p>
           Four failure modes account for most of the shortfall:
@@ -147,15 +153,17 @@ export default function ResearchAiAssistedExtractionPage() {
         <h3>3.1 Baseline Measurement</h3>
         <p>
           A benchmark script (<code>pipelines/src/jobs/llm-extraction-benchmark.ts</code>) fetches a
-          configurable sample of pages from foerderdatenbank.de and runs both the CSS-only extractor and the
-          hybrid extractor against each page. It records, per page and per field: whether CSS populated the
-          field, whether the LLM was called, whether the LLM populated the field, and the token and latency
-          cost of the LLM call.
+          configurable sample of pages from foerderdatenbank.de and runs three extractors against each page:
+          CSS-only, LLM-only, and the hybrid (CSS with LLM fallback). It records, per page and per field:
+          whether each extractor populated the field, whether extraction succeeded or errored, and the token
+          and latency cost of any LLM calls. Results are written to{" "}
+          <code>pipelines/benchmark-results/css-vs-llm-2026-03-27.json</code>.
         </p>
         <p>
-          The benchmark is deterministic and reproducible. Results are written to a JSON report file for
-          offline analysis. A 50-page sample provides a sufficient signal for the failure-mode distribution
-          while completing within a few minutes.
+          The 20-page sample spans programs from six German states (Sachsen, Thüringen, NRW,
+          Baden-Württemberg, Bremen, Hamburg, Rheinland-Pfalz), covering the structural variation present in
+          the corpus. All three extractors run against the same fetched HTML, making the comparison
+          controlled.
         </p>
         <h3>3.2 Hybrid Pipeline Design</h3>
         <p>
@@ -305,10 +313,10 @@ Return only valid JSON, no explanation.`}
           The hybrid pipeline emits structured log lines at the end of each run:
         </p>
         <pre className="bg-gray-900 text-gray-100 rounded-lg p-4 text-sm overflow-x-auto">
-          {`[hybrid-funding] pages with LLM call: 20/50
-[hybrid-funding] tokens used: 64,800
-[hybrid-funding] fields filled by LLM: 28/42 (67%)
-[hybrid-funding] estimated cost: $0.20`}
+          {`[hybrid-funding] pages with LLM call: 20/20
+[hybrid-funding] tokens used: 85,124
+[hybrid-funding] fields filled by LLM: 24/40 (60%)
+[hybrid-funding] estimated cost: $0.2554`}
         </pre>
         <p>
           These metrics are the primary input for cost monitoring. A run that consumes significantly more
@@ -318,183 +326,234 @@ Return only valid JSON, no explanation.`}
 
         {/* 5. Results */}
         <h2>5. Results</h2>
-        <h3>5.1 Field Coverage Improvement</h3>
+        <h3>5.1 Three-Way Field Coverage Comparison</h3>
         <p>
-          Across the 50-page benchmark sample, the hybrid pipeline increases mean field coverage from 4.6 to
-          6.1 fields per page — an improvement of 1.5 fields (21 percentage points). The per-field breakdown
-          shows that LLM contribution is highest for fields where heading text variation is greatest:
+          Across the 20-page benchmark sample, the hybrid pipeline achieves 6.45 fields per page (92.1%),
+          up from 5.25 fields for CSS-only (75.0%) — a gain of 1.2 fields per page (17.1 percentage points).
+          Notably, LLM-only (4.2 fields/page, 60.0%) performs <em>worse</em> than CSS-only on average, due
+          to a 35% per-page error rate discussed in §5.2. The per-field breakdown shows two distinct patterns:
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
                 <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Field</th>
-                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">CSS Fill Rate</th>
-                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Hybrid Fill Rate</th>
-                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">LLM Contribution</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">CSS</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">LLM-only</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Hybrid</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Hybrid vs CSS</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td className="border border-gray-200 px-4 py-2"><code>summaryDe</code></td>
-                <td className="border border-gray-200 px-4 py-2">72%</td>
-                <td className="border border-gray-200 px-4 py-2">91%</td>
-                <td className="border border-gray-200 px-4 py-2">+19 pp</td>
+                <td className="border border-gray-200 px-4 py-2">95%</td>
+                <td className="border border-gray-200 px-4 py-2">65%</td>
+                <td className="border border-gray-200 px-4 py-2">100%</td>
+                <td className="border border-gray-200 px-4 py-2">+5 pp</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="border border-gray-200 px-4 py-2"><code>descriptionDe</code></td>
-                <td className="border border-gray-200 px-4 py-2">68%</td>
-                <td className="border border-gray-200 px-4 py-2">88%</td>
-                <td className="border border-gray-200 px-4 py-2">+20 pp</td>
+                <td className="border border-gray-200 px-4 py-2">95%</td>
+                <td className="border border-gray-200 px-4 py-2">65%</td>
+                <td className="border border-gray-200 px-4 py-2">100%</td>
+                <td className="border border-gray-200 px-4 py-2">+5 pp</td>
               </tr>
               <tr>
                 <td className="border border-gray-200 px-4 py-2"><code>legalRequirementsDe</code></td>
-                <td className="border border-gray-200 px-4 py-2">61%</td>
-                <td className="border border-gray-200 px-4 py-2">84%</td>
-                <td className="border border-gray-200 px-4 py-2">+23 pp</td>
+                <td className="border border-gray-200 px-4 py-2">100%</td>
+                <td className="border border-gray-200 px-4 py-2">65%</td>
+                <td className="border border-gray-200 px-4 py-2">100%</td>
+                <td className="border border-gray-200 px-4 py-2">0 pp</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="border border-gray-200 px-4 py-2"><code>directiveDe</code></td>
-                <td className="border border-gray-200 px-4 py-2">55%</td>
-                <td className="border border-gray-200 px-4 py-2">80%</td>
-                <td className="border border-gray-200 px-4 py-2">+25 pp</td>
+                <td className="border border-gray-200 px-4 py-2">95%</td>
+                <td className="border border-gray-200 px-4 py-2">60%</td>
+                <td className="border border-gray-200 px-4 py-2">95%</td>
+                <td className="border border-gray-200 px-4 py-2">0 pp</td>
               </tr>
               <tr>
                 <td className="border border-gray-200 px-4 py-2"><code>applicationProcess</code></td>
-                <td className="border border-gray-200 px-4 py-2">63%</td>
-                <td className="border border-gray-200 px-4 py-2">85%</td>
-                <td className="border border-gray-200 px-4 py-2">+22 pp</td>
+                <td className="border border-gray-200 px-4 py-2">90%</td>
+                <td className="border border-gray-200 px-4 py-2">65%</td>
+                <td className="border border-gray-200 px-4 py-2">100%</td>
+                <td className="border border-gray-200 px-4 py-2">+10 pp</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="border border-gray-200 px-4 py-2"><code>deadlineInfo</code></td>
-                <td className="border border-gray-200 px-4 py-2">48%</td>
-                <td className="border border-gray-200 px-4 py-2">76%</td>
-                <td className="border border-gray-200 px-4 py-2">+28 pp</td>
+                <td className="border border-gray-200 px-4 py-2">
+                  <code>deadlineInfo</code> ⚠️
+                </td>
+                <td className="border border-gray-200 px-4 py-2 font-semibold text-red-600">0%</td>
+                <td className="border border-gray-200 px-4 py-2">35%</td>
+                <td className="border border-gray-200 px-4 py-2">55%</td>
+                <td className="border border-gray-200 px-4 py-2">+55 pp</td>
               </tr>
               <tr>
                 <td className="border border-gray-200 px-4 py-2"><code>fundingAmountInfo</code></td>
-                <td className="border border-gray-200 px-4 py-2">70%</td>
-                <td className="border border-gray-200 px-4 py-2">82%</td>
-                <td className="border border-gray-200 px-4 py-2">+12 pp</td>
+                <td className="border border-gray-200 px-4 py-2">50%</td>
+                <td className="border border-gray-200 px-4 py-2">65%</td>
+                <td className="border border-gray-200 px-4 py-2">95%</td>
+                <td className="border border-gray-200 px-4 py-2">+45 pp</td>
               </tr>
               <tr className="bg-gray-50 font-semibold">
                 <td className="border border-gray-200 px-4 py-2">Overall (mean)</td>
-                <td className="border border-gray-200 px-4 py-2">66%</td>
-                <td className="border border-gray-200 px-4 py-2">87%</td>
-                <td className="border border-gray-200 px-4 py-2">+21 pp</td>
+                <td className="border border-gray-200 px-4 py-2">75.0%</td>
+                <td className="border border-gray-200 px-4 py-2">60.0%</td>
+                <td className="border border-gray-200 px-4 py-2">92.1%</td>
+                <td className="border border-gray-200 px-4 py-2">+17.1 pp</td>
               </tr>
             </tbody>
           </table>
         </div>
         <p>
-          The two fields with the largest LLM contribution — <code>deadlineInfo</code> (+28 pp) and{" "}
-          <code>directiveDe</code> (+25 pp) — are precisely those where heading text variation is highest on
-          the corpus. Deadline sections appear under "Frist", "Bewerbungsschluss", "Einreichungsfrist", and
-          "Antragsfrist" depending on the program. Directive sections use "Richtlinie", "Rechtsgrundlage",
-          "Förderrichtlinie", and "Fördergrundlage". The LLM reads through these synonyms; the CSS extractor
-          does not.
+          The two fields with the largest LLM contribution are <code>deadlineInfo</code> (+55 pp, from 0%)
+          and <code>fundingAmountInfo</code> (+45 pp, from 50%). The{" "}
+          <code>deadlineInfo</code> result is the sharpest finding in the dataset:{" "}
+          <strong>the CSS extractor extracted zero deadline fields across all 20 pages.</strong> Deadline
+          information appears under at least six heading variants in the corpus — "Frist",
+          "Bewerbungsschluss", "Einreichungsfrist", "Antragsfrist", "Einreichtermin", and plain
+          "Termin" — none of which the current selector set covers. The LLM finds the field semantically in
+          55% of pages; the remaining 45% appear to lack a discrete deadline section entirely.
         </p>
-        <h3>5.2 LLM Fill Rate on CSS Failures</h3>
         <p>
-          Of fields passed to the LLM (i.e., fields that CSS failed to populate), the LLM successfully
-          extracts the content in approximately 78–85% of cases. The remaining ~20% of LLM misses break down
-          into three categories:
+          <code>fundingAmountInfo</code>'s 50% CSS rate reflects its regex-based extraction, which correctly
+          parses formatted monetary ranges ("bis zu X Euro", "maximal X%") but misses narrative funding
+          descriptions. The LLM recovers an additional 45 pp by reading the funding terms as text.
         </p>
-        <ul>
-          <li>Truly absent content — the field is not present on that specific page (~10%)</li>
-          <li>Content behind JavaScript rendering not captured in the initial DOM (~7%)</li>
-          <li>Content in non-text formats (embedded PDFs, images of text) (~3%)</li>
-        </ul>
+        <h3>5.2 LLM-Only Reliability Problem</h3>
         <p>
-          None of these are LLM failure modes — they are limitations of the HTML source, not the extraction
-          layer. The LLM achieves near-complete recovery for content that is present in the HTML but
-          structured in a way that CSS selectors cannot find.
+          The most consequential finding in the benchmark is the LLM-only strategy's 35% per-page error
+          rate: 7 of 20 pages returned zero fields extracted. These are complete extraction failures, not
+          partial misses. The errors were not caused by timeouts or network failures — the LLM call completed
+          (average 9,948ms on error pages, consistent with normal execution) — but the response either failed
+          JSON parsing or returned an empty object. The affected pages span multiple states and program types,
+          suggesting a content or prompt-length sensitivity rather than a site-specific issue.
+        </p>
+        <p>
+          This error rate makes LLM-only extraction unreliable as a standalone strategy for production
+          pipelines. A 35% complete-miss rate is a data quality regression, not a cost trade-off. CSS-only,
+          by contrast, achieved a 0% error rate across all 20 pages. The hybrid approach inherits CSS's 0%
+          error rate: even on the 7 pages where LLM-only fails entirely, the CSS layer provides a non-empty
+          record.
         </p>
         <h3>5.3 Resilience Under Structural Change</h3>
         <p>
-          The structural change simulation — renaming all h2/h3 elements to h4/h5 before parsing — produces
-          a stark divergence between the two approaches:
+          The structural change simulation — renaming all h2/h3 elements to h4/h5 before parsing — was run
+          on a representative page (Bürgschaft Sachsen Beteiligung). The results are unambiguous:
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Metric</th>
-                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Value</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Strategy</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Fields (original)</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Fields (after h2/h3→h4/h5)</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Change</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="border border-gray-200 px-4 py-2">CSS fields extracted on original HTML (avg)</td>
-                <td className="border border-gray-200 px-4 py-2">5.2</td>
+                <td className="border border-gray-200 px-4 py-2">CSS-only</td>
+                <td className="border border-gray-200 px-4 py-2">5</td>
+                <td className="border border-gray-200 px-4 py-2 font-semibold text-red-600">0</td>
+                <td className="border border-gray-200 px-4 py-2 text-red-600">−100%</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="border border-gray-200 px-4 py-2">CSS fields extracted after h2/h3 → h4/h5 change (avg)</td>
-                <td className="border border-gray-200 px-4 py-2">0.8</td>
+                <td className="border border-gray-200 px-4 py-2">LLM-only</td>
+                <td className="border border-gray-200 px-4 py-2">7</td>
+                <td className="border border-gray-200 px-4 py-2">7</td>
+                <td className="border border-gray-200 px-4 py-2 text-green-600">0%</td>
               </tr>
-              <tr>
-                <td className="border border-gray-200 px-4 py-2">LLM fields extracted after structure change (avg)</td>
-                <td className="border border-gray-200 px-4 py-2">4.9</td>
-              </tr>
-              <tr className="bg-gray-50 font-semibold">
-                <td className="border border-gray-200 px-4 py-2">LLM recovery rate (of CSS-dropped fields)</td>
-                <td className="border border-gray-200 px-4 py-2">~94%</td>
+              <tr className="font-semibold">
+                <td className="border border-gray-200 px-4 py-2">Hybrid</td>
+                <td className="border border-gray-200 px-4 py-2">7</td>
+                <td className="border border-gray-200 px-4 py-2">7</td>
+                <td className="border border-gray-200 px-4 py-2 text-green-600">+40% vs CSS baseline</td>
               </tr>
             </tbody>
           </table>
         </div>
         <p>
-          CSS fails catastrophically after the structural change — dropping from an average of 5.2 fields to
-          0.8. The LLM recovers to 4.9 fields on the same modified HTML, because it reads the content
-          semantically rather than navigating the DOM structure. The 6% of fields the LLM does not recover
-          are cases where the structural change was accompanied by a content reorganisation as well — rare
-          in real CMS migrations.
+          CSS-only drops from 5 to 0 fields — a total extraction failure. The heading-hierarchy change breaks
+          every selector simultaneously. LLM-only is unaffected because it does not navigate the DOM; it
+          reads the page as text. The hybrid, whose CSS layer originally contributed 5 of the 7 fields, falls
+          back entirely to LLM after the structural change and still returns all 7 fields — <em>gaining</em>{" "}
+          40% over the CSS baseline rather than losing any coverage.
         </p>
         <p>
           This result has a direct operational implication: a government portal that updates its CMS theme
-          will silently break a CSS-only scraper while a hybrid scraper continues to extract most fields on
-          the next scheduled run. The pipeline remains functional until operators have time to update
-          selectors, rather than emitting mass null records until a manual fix is deployed.
+          will silently produce all-null records from a CSS-only scraper on the next scheduled run. The hybrid
+          scraper remains fully functional through the change, giving operators time to update selectors
+          without a data quality incident.
         </p>
-        <h3>5.4 Cost</h3>
+        <h3>5.4 Cost and Speed</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50">
                 <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Metric</th>
-                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Value</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">CSS-only</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">LLM-only</th>
+                <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Hybrid</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="border border-gray-200 px-4 py-2">Pages requiring LLM call (50-page sample)</td>
-                <td className="border border-gray-200 px-4 py-2">~20 (40%)</td>
+                <td className="border border-gray-200 px-4 py-2">Avg latency per page</td>
+                <td className="border border-gray-200 px-4 py-2">28.6ms</td>
+                <td className="border border-gray-200 px-4 py-2">8,915ms</td>
+                <td className="border border-gray-200 px-4 py-2">2,152ms</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="border border-gray-200 px-4 py-2">Total tokens consumed (50 pages)</td>
-                <td className="border border-gray-200 px-4 py-2">~65,000</td>
+                <td className="border border-gray-200 px-4 py-2">Speed vs CSS-only</td>
+                <td className="border border-gray-200 px-4 py-2">1×</td>
+                <td className="border border-gray-200 px-4 py-2">312× slower</td>
+                <td className="border border-gray-200 px-4 py-2">75× slower</td>
               </tr>
               <tr>
-                <td className="border border-gray-200 px-4 py-2">Estimated cost (50-page sample)</td>
-                <td className="border border-gray-200 px-4 py-2">~$0.20</td>
+                <td className="border border-gray-200 px-4 py-2">Total tokens (20 pages)</td>
+                <td className="border border-gray-200 px-4 py-2">0</td>
+                <td className="border border-gray-200 px-4 py-2">104,223</td>
+                <td className="border border-gray-200 px-4 py-2">85,124</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="border border-gray-200 px-4 py-2">Extrapolated to full corpus (~2,600 programs)</td>
-                <td className="border border-gray-200 px-4 py-2">~$4.90 per run</td>
+                <td className="border border-gray-200 px-4 py-2">Cost (20-page sample)</td>
+                <td className="border border-gray-200 px-4 py-2">$0.00</td>
+                <td className="border border-gray-200 px-4 py-2">$0.3127</td>
+                <td className="border border-gray-200 px-4 py-2">$0.2554</td>
               </tr>
               <tr>
+                <td className="border border-gray-200 px-4 py-2">Extrapolated to 2,600 programs</td>
+                <td className="border border-gray-200 px-4 py-2">$0.00</td>
+                <td className="border border-gray-200 px-4 py-2">$40.65/run</td>
+                <td className="border border-gray-200 px-4 py-2">$33.20/run</td>
+              </tr>
+              <tr className="bg-gray-50">
                 <td className="border border-gray-200 px-4 py-2">At weekly cadence</td>
-                <td className="border border-gray-200 px-4 py-2">~$25/month</td>
+                <td className="border border-gray-200 px-4 py-2">$0.00/month</td>
+                <td className="border border-gray-200 px-4 py-2">~$177/month</td>
+                <td className="border border-gray-200 px-4 py-2">~$145/month</td>
               </tr>
             </tbody>
           </table>
         </div>
         <p>
-          The marginal cost of $4.90 per full corpus run is modest relative to the hosting and scraping
-          infrastructure costs. The larger consideration is cost variability: pages with more missing fields
-          generate larger prompts and more output tokens. Monitoring the <code>llmTokensUsed</code> metric
-          across runs detects degradation in CSS extractor performance before it accumulates into significant
-          cost increases.
+          The $33.20/run hybrid cost is higher than earlier projections, for a specific reason: because{" "}
+          <code>deadlineInfo</code> is never extracted by CSS (0% fill rate), the LLM is triggered on every
+          single page rather than the ~40% originally assumed. Every page has at least one missing field, so
+          every page incurs an LLM call. This is a structural characteristic of the current selector set, not
+          a pipeline behaviour to tune away.
+        </p>
+        <p>
+          The hybrid is 18.4% cheaper per run than LLM-only ($33.20 vs $40.65) because field-targeted
+          prompts omit fields that CSS already extracted — reducing average tokens per page from 5,211 (LLM-only)
+          to 4,256 (hybrid). CSS does the cheap work; the LLM fills the remainder.
+        </p>
+        <p>
+          Speed: hybrid extraction averages 2,152ms per page, 75× slower than CSS-only but 4.1× faster than
+          LLM-only. For a pipeline running 2,600 programs sequentially, that is approximately 93 minutes
+          versus 6.4 hours for LLM-only. Parallelism (pg-boss concurrency) reduces wall-clock time further.
         </p>
 
         {/* 6. Resilience Analysis */}
@@ -581,11 +640,12 @@ Return only valid JSON, no explanation.`}
         </p>
         <h3>8.3 When to Use LLM-First</h3>
         <p>
-          LLM-first extraction — skipping CSS entirely — is warranted only when: the source is so
-          structurally variable that CSS selectors would require constant maintenance, the page volume is
-          low enough that per-page LLM cost is acceptable, or the extraction task requires semantic reasoning
-          that CSS cannot provide (e.g. extracting the implied geographic scope from unstructured body text).
-          For high-volume government corpora like foerderdatenbank.de, LLM-first is not cost-justified.
+          LLM-first extraction — skipping CSS entirely — is rarely justified and the benchmark data provides
+          a strong argument against it for production pipelines. Beyond the cost penalty (22% more expensive
+          than hybrid per run), the 35% complete-failure rate observed in this benchmark is a disqualifying
+          reliability problem. LLM-first may be appropriate only for one-off exploratory extraction on small
+          page sets where reliability is not critical. For any recurring, monitored pipeline, the hybrid
+          approach strictly dominates: it is cheaper, more reliable, and faster.
         </p>
         <h3>8.4 Broader Applicability</h3>
         <p>
@@ -621,9 +681,10 @@ Return only valid JSON, no explanation.`}
           per run is recommended until a more systematic quality signal is established.
         </p>
         <p>
-          <strong>Benchmark scope.</strong> The 50-page benchmark represents approximately 2% of the
-          foerderdatenbank.de corpus. Failure-mode distributions may differ for specific program categories,
-          funding authorities, or time periods. A full-corpus benchmark run is the next validation step.
+          <strong>Benchmark scope.</strong> The 20-page benchmark represents less than 1% of the
+          foerderdatenbank.de corpus (~2,600 programs). The sample spans seven states but may not capture
+          all structural variants, particularly federal-level programs (BMBF, BMWK) which have distinct
+          page templates. A full-corpus benchmark run is the next validation step.
         </p>
         <p>
           <strong>Cost variability.</strong> Pages with more missing fields incur higher LLM costs. If
@@ -641,22 +702,27 @@ Return only valid JSON, no explanation.`}
         {/* 10. Conclusion */}
         <h2>10. Conclusion</h2>
         <p>
-          LLM-based extraction is a viable and cost-justified complement to CSS scraping for German government
-          web portals. The hybrid architecture described in this paper achieves a 21 percentage-point
-          improvement in field coverage, recovers 94% of fields lost to structural changes, and does so at a
-          marginal cost of approximately $5 per full foerderdatenbank.de scrape.
+          The benchmark establishes three clear findings. First, the hybrid approach is strictly superior to
+          both CSS-only and LLM-only strategies: it achieves 92.1% field coverage (vs 75.0% for CSS-only),
+          0% error rate (vs 35% for LLM-only), and lower cost than LLM-only ($33.20 vs $40.65 per full
+          corpus run). Second, <code>deadlineInfo</code> extraction is broken in CSS-only mode — 0% fill rate
+          across all 20 tested pages — making LLM augmentation not optional but necessary for that field.
+          Third, the LLM-only strategy's 35% complete-failure rate disqualifies it as a standalone production
+          approach regardless of its field-coverage potential.
         </p>
         <p>
           The key design principle is additive deployment: CSS selectors remain the primary layer and run on
-          every page at zero marginal cost. The LLM is a second pass, invoked only for fields CSS fails to
-          populate, with prompts scoped to only those fields. This keeps the approach cost-proportional to
-          actual extraction failures rather than to page volume.
+          every page at zero marginal cost. The LLM is a second pass, invoked for fields CSS fails to
+          populate, with prompts scoped to only those fields. It is also the resilience layer — when a CMS
+          upgrade breaks CSS selectors entirely, the LLM sustains full coverage until selectors are updated.
         </p>
         <p>
           The <code>mergeWithLlmFallback()</code> utility is ready for production deployment behind the{" "}
-          <code>FUNDING_LLM_FALLBACK=true</code> feature flag. The recommended path to production is: enable
-          in staging, run the benchmark script to validate results against the full corpus, spot-check 5% of
-          LLM-filled records, then promote to production with token-cost monitoring in place.
+          <code>FUNDING_LLM_FALLBACK=true</code> feature flag. At $33.20 per full corpus run, the weekly
+          cost is approximately $145/month — a justifiable data quality investment. The recommended path to
+          production is: enable in staging, run the benchmark against a wider sample, spot-check 5% of
+          LLM-filled records (particularly <code>deadlineInfo</code> and <code>directiveDe</code>), then
+          promote to production with <code>llmTokensUsed</code> monitoring in place.
         </p>
         <p>
           The broader implication is that the hybrid pattern is not specific to funding data. Any Sophex
