@@ -2,7 +2,7 @@
   "name": "dataforge",
   "version": "0.1.0",
   "private": true,
-  "description": "Structured Data Platform — Education & Regulatory verticals",
+  "description": "Structured Data Platform \u2014 Education & Regulatory verticals",
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=20",
@@ -23,5 +23,8 @@
     "shared",
     "web",
     "admin"
-  ]
+  ],
+  "devDependencies": {
+    "esbuild": "^0.21.0"
+  }
 }
