@@ -25,6 +25,118 @@ export const openApiSpec = {
       },
     },
     schemas: {
+      Rechtsform: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          name: { type: "string", example: "GmbH" },
+          slug: { type: "string", example: "gmbh" },
+          fullName: { type: "string", nullable: true, example: "Gesellschaft mit beschränkter Haftung" },
+          minCapitalEur: { type: "integer", nullable: true },
+          liabilityType: { type: "string", nullable: true },
+          notaryRequired: { type: "boolean" },
+          tradeRegisterRequired: { type: "boolean" },
+          founderCount: { type: "string", nullable: true },
+          descriptionDe: { type: "string", nullable: true },
+          descriptionEn: { type: "string", nullable: true },
+          taxNotesDe: { type: "string", nullable: true },
+          foundingCostsDe: { type: "string", nullable: true },
+          sourceUrl: { type: "string", format: "uri" },
+          scrapedAt: { type: "string", format: "date-time", nullable: true },
+          updatedAt: { type: "string", format: "date-time", nullable: true },
+        },
+      },
+      GewerbeanmeldungInfo: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          bundesland: { type: "string", example: "Bayern" },
+          authorityName: { type: "string", nullable: true },
+          authorityUrl: { type: "string", format: "uri", nullable: true },
+          processingTimeDays: { type: "string", nullable: true },
+          feeEur: { type: "string", nullable: true },
+          onlineAvailable: { type: "boolean", nullable: true },
+          documentsRequired: { type: "string", nullable: true },
+          sourceUrl: { type: "string", format: "uri" },
+          scrapedAt: { type: "string", format: "date-time", nullable: true },
+          updatedAt: { type: "string", format: "date-time", nullable: true },
+        },
+      },
+      SvContributionRate: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          insuranceType: { type: "string", example: "krankenversicherung" },
+          labelDe: { type: "string" },
+          rateTotal: { type: "string", example: "14.6%" },
+          rateEmployer: { type: "string", nullable: true },
+          rateEmployee: { type: "string", nullable: true },
+          notesDe: { type: "string", nullable: true },
+          validFrom: { type: "string", nullable: true },
+          sourceUrl: { type: "string", format: "uri" },
+          scrapedAt: { type: "string", format: "date-time", nullable: true },
+        },
+      },
+      TaxObligation: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          rechtsformSlug: { type: "string", example: "gmbh" },
+          taxType: { type: "string", example: "koerperschaftsteuer" },
+          labelDe: { type: "string" },
+          descriptionDe: { type: "string", nullable: true },
+          rateInfo: { type: "string", nullable: true },
+          filingFrequency: { type: "string", nullable: true },
+          legalBasis: { type: "string", nullable: true },
+          sourceUrl: { type: "string", format: "uri" },
+          scrapedAt: { type: "string", format: "date-time", nullable: true },
+        },
+      },
+      Permit: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          permitKey: { type: "string", example: "gaststättengewerbe" },
+          permitCategory: { type: "string", example: "erlaubnispflichtiges_gewerbe" },
+          tradeCategory: { type: "string", example: "gastronomie_tourismus" },
+          labelDe: { type: "string" },
+          descriptionDe: { type: "string", nullable: true },
+          authorityType: { type: "string", nullable: true },
+          authorityLevel: { type: "string", enum: ["federal", "state", "local"], nullable: true },
+          requiredDocuments: { type: "string", nullable: true },
+          costsEur: { type: "string", nullable: true },
+          processingTimeDays: { type: "string", nullable: true },
+          legalBasis: { type: "string", nullable: true },
+          sourceUrl: { type: "string", format: "uri" },
+          scrapedAt: { type: "string", format: "date-time", nullable: true },
+        },
+      },
+      HrObligation: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          rechtsformSlug: { type: "string" },
+          obligationType: { type: "string" },
+          labelDe: { type: "string" },
+          descriptionDe: { type: "string", nullable: true },
+          legalBasis: { type: "string", nullable: true },
+          sourceUrl: { type: "string", format: "uri" },
+          scrapedAt: { type: "string", format: "date-time", nullable: true },
+        },
+      },
+      Webhook: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          url: { type: "string", format: "uri" },
+          events: { type: "array", items: { type: "string" } },
+          isActive: { type: "boolean" },
+          description: { type: "string", nullable: true },
+          failureCount: { type: "integer" },
+          lastTriggeredAt: { type: "string", format: "date-time", nullable: true },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
       Error: {
         type: "object",
         properties: {
@@ -667,6 +779,381 @@ export const openApiSpec = {
               "application/x-ndjson": { schema: { type: "string" } },
             },
           },
+        },
+      },
+    },
+    "/rechtsformen": {
+      get: {
+        summary: "List German legal entity types",
+        description: "Returns a paginated list of Rechtsformen (GmbH, UG, AG, etc.) with comparison fields.",
+        security: [{ ApiKey: [] }],
+        tags: ["Gründung"],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "pageSize", in: "query", schema: { type: "integer", default: 50, maximum: 200 } },
+        ],
+        responses: {
+          "200": {
+            description: "Paginated list of Rechtsformen",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/Rechtsform" } },
+                    meta: { $ref: "#/components/schemas/Pagination" },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/rechtsformen/{slug}": {
+      get: {
+        summary: "Get a Rechtsform by slug",
+        description: "Returns full detail for a single Rechtsform, including descriptions and tax notes.",
+        security: [{ ApiKey: [] }],
+        tags: ["Gründung"],
+        parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string", example: "gmbh" } }],
+        responses: {
+          "200": {
+            description: "Rechtsform detail",
+            content: { "application/json": { schema: { type: "object", properties: { data: { $ref: "#/components/schemas/Rechtsform" } } } } },
+          },
+          "404": { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+    "/gewerbeanmeldung": {
+      get: {
+        summary: "List Gewerbeanmeldung info by Bundesland",
+        description: "Returns business registration requirements per German state.",
+        security: [{ ApiKey: [] }],
+        tags: ["Gründung"],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "pageSize", in: "query", schema: { type: "integer", default: 50, maximum: 200 } },
+        ],
+        responses: {
+          "200": {
+            description: "Paginated list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/GewerbeanmeldungInfo" } },
+                    meta: { $ref: "#/components/schemas/Pagination" },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/gewerbeanmeldung/{bundesland}": {
+      get: {
+        summary: "Get Gewerbeanmeldung info for a Bundesland",
+        security: [{ ApiKey: [] }],
+        tags: ["Gründung"],
+        parameters: [{ name: "bundesland", in: "path", required: true, schema: { type: "string", example: "Bayern" } }],
+        responses: {
+          "200": {
+            description: "Gewerbeanmeldung detail",
+            content: { "application/json": { schema: { type: "object", properties: { data: { $ref: "#/components/schemas/GewerbeanmeldungInfo" } } } } },
+          },
+          "404": { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+    "/sozialversicherung/beitraege": {
+      get: {
+        summary: "List social insurance contribution rates",
+        description: "Returns current Sozialversicherung Beitragssätze (Kranken-, Renten-, Pflege-, Arbeitslosenversicherung).",
+        security: [{ ApiKey: [] }],
+        tags: ["Sozialversicherung"],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "pageSize", in: "query", schema: { type: "integer", default: 50, maximum: 200 } },
+        ],
+        responses: {
+          "200": {
+            description: "List of contribution rates",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/SvContributionRate" } },
+                    meta: { $ref: "#/components/schemas/Pagination" },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/steuern": {
+      get: {
+        summary: "List tax obligations",
+        description: "Returns tax obligations filtered by Rechtsform and/or tax type.",
+        security: [{ ApiKey: [] }],
+        tags: ["Steuern"],
+        parameters: [
+          { name: "rechtsform", in: "query", description: "Filter by Rechtsform slug (e.g. gmbh, ug, einzelunternehmen)", schema: { type: "string" } },
+          { name: "taxType", in: "query", description: "Exact match on tax type (e.g. koerperschaftsteuer)", schema: { type: "string" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "pageSize", in: "query", schema: { type: "integer", default: 50, maximum: 200 } },
+        ],
+        responses: {
+          "200": {
+            description: "List of tax obligations",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/TaxObligation" } },
+                    meta: { $ref: "#/components/schemas/Pagination" },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/genehmigungen": {
+      get: {
+        summary: "List trade permits and approvals",
+        description: "Returns permits (Erlaubnisse, Meisterpflichten, Konzessionen) filterable by trade category.",
+        security: [{ ApiKey: [] }],
+        tags: ["Genehmigungen"],
+        parameters: [
+          { name: "tradeCategory", in: "query", description: "Filter by trade category (e.g. gastronomie_tourismus, handwerk_bau)", schema: { type: "string" } },
+          { name: "permitCategory", in: "query", description: "Filter by permit type (e.g. erlaubnispflichtiges_gewerbe, meisterpflicht, konzession)", schema: { type: "string" } },
+          { name: "q", in: "query", description: "Partial text search on label", schema: { type: "string" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "pageSize", in: "query", schema: { type: "integer", default: 50, maximum: 200 } },
+        ],
+        responses: {
+          "200": {
+            description: "List of permits",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/Permit" } },
+                    meta: { $ref: "#/components/schemas/Pagination" },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/handelsregister/pflichten": {
+      get: {
+        summary: "List trade register obligations",
+        description: "Returns Handelsregister registration obligations by Rechtsform.",
+        security: [{ ApiKey: [] }],
+        tags: ["Handelsregister"],
+        parameters: [
+          { name: "rechtsform", in: "query", description: "Filter by Rechtsform slug (e.g. gmbh, ag, ohg)", schema: { type: "string" } },
+          { name: "obligationType", in: "query", description: "Filter by type (e.g. eintragungspflicht, notarpflicht)", schema: { type: "string" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "pageSize", in: "query", schema: { type: "integer", default: 50, maximum: 200 } },
+        ],
+        responses: {
+          "200": {
+            description: "List of obligations",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/HrObligation" } },
+                    meta: { $ref: "#/components/schemas/Pagination" },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/search": {
+      get: {
+        summary: "Unified cross-silo search",
+        description: "Full-text search across all data silos. Currently searches funding programs via German pg full-text search.",
+        security: [{ ApiKey: [] }],
+        tags: ["Misc"],
+        parameters: [
+          { name: "q", in: "query", required: true, description: "Search query (German full-text)", schema: { type: "string" } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 10, maximum: 50 } },
+        ],
+        responses: {
+          "200": {
+            description: "Search results",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { type: "object" } },
+                    meta: { type: "object", properties: { total: { type: "integer" }, q: { type: "string" } } },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+          "400": { description: "Missing query parameter q", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+    "/webhooks": {
+      get: {
+        summary: "List webhooks",
+        description: "Returns all webhook subscriptions for the authenticated user.",
+        security: [{ BearerJWT: [] }],
+        tags: ["Webhooks"],
+        responses: {
+          "200": {
+            description: "List of webhooks",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "array", items: { $ref: "#/components/schemas/Webhook" } },
+                    meta: { type: "object", properties: { total: { type: "integer" } } },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+          "401": { description: "Unauthorized" },
+        },
+      },
+      post: {
+        summary: "Register a webhook",
+        description: "Creates a new webhook subscription. The signing secret is returned once on creation.",
+        security: [{ BearerJWT: [] }],
+        tags: ["Webhooks"],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["url"],
+                properties: {
+                  url: { type: "string", format: "uri" },
+                  events: {
+                    type: "array",
+                    items: { type: "string", enum: ["program.created", "program.updated", "institution.created", "institution.updated", "regulation.created", "regulation.updated", "pipeline.completed"] },
+                    description: "Defaults to all events",
+                  },
+                  description: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Webhook created (secret shown once)",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: {
+                      allOf: [
+                        { $ref: "#/components/schemas/Webhook" },
+                        { type: "object", properties: { secret: { type: "string", description: "HMAC-SHA256 signing secret (whsec_ prefix) — shown once only" } } },
+                      ],
+                    },
+                    meta: { nullable: true, example: null },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+          "400": { description: "Invalid URL or events", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "401": { description: "Unauthorized" },
+        },
+      },
+    },
+    "/webhooks/{id}": {
+      delete: {
+        summary: "Delete a webhook",
+        description: "Permanently removes a webhook subscription belonging to the authenticated user.",
+        security: [{ BearerJWT: [] }],
+        tags: ["Webhooks"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        responses: {
+          "200": {
+            description: "Webhook deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "object", properties: { id: { type: "integer" }, deleted: { type: "boolean" } } },
+                    meta: { nullable: true, example: null },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+          "404": { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "401": { description: "Unauthorized" },
+        },
+      },
+    },
+    "/auth/api-keys/{id}": {
+      delete: {
+        summary: "Revoke an API key",
+        description: "Deactivates an API key belonging to the authenticated user.",
+        security: [{ BearerJWT: [] }],
+        tags: ["Auth"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        responses: {
+          "200": {
+            description: "Key revoked",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    data: { type: "object", properties: { id: { type: "integer" }, revoked: { type: "boolean" } } },
+                    meta: { nullable: true, example: null },
+                    error: { nullable: true, example: null },
+                  },
+                },
+              },
+            },
+          },
+          "400": { description: "Invalid key id" },
+          "401": { description: "Unauthorized" },
+          "404": { description: "Key not found or not owned by you", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
         },
       },
     },

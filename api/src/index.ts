@@ -23,6 +23,7 @@ import { integrityRouter } from "./routes/integrity.js";
 import { assistantRouter } from "./routes/assistant.js";
 import { streamRouter } from "./routes/stream.js";
 import { webhooksRouter } from "./routes/webhooks.js";
+import { searchRouter } from "./routes/search.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { rateLimitMiddleware } from "./middleware/rate-limit.js";
 import { openApiSpec } from "./openapi.js";
@@ -105,6 +106,9 @@ app.route("/v1", handelsregisterRouter);
 app.route("/v1/sources", sourcesRouter);
 app.route("/v1/verify", verifyRouter);
 app.route("/v1/integrity", integrityRouter);
+
+// Unified cross-silo search — requires API key
+app.route("/v1/search", searchRouter);
 
 // Real-time delivery — SSE stream (public, read-only) + webhook management (JWT)
 app.route("/v1/stream", streamRouter);

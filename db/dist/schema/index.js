@@ -11,4 +11,3 @@ export * from "./handelsregister.js";
 export * from "./source_verification.js";
 export * from "./blockchain_integrity.js";
 export * from "./webhooks.js";
-//# sourceMappingURL=index.js.map

@@ -41,32 +41,162 @@ const KNOWN_RECHTSFORMEN: Array<{ slug: string; name: string; fullName?: string;
   { slug: "genossenschaft", name: "Genossenschaft (eG)", fullName: "eingetragene Genossenschaft", rowLabel: "genossenschaft" },
 ];
 
-// service.bund.de — primary federal service portal for Gewerbeanmeldung procedure.
-// This page aggregates state-level service links (OZG leistung 99013).
-const SERVICE_BUND_GEWERBE =
-  "https://service.bund.de/DE/ZentralerStatischerKontent/Einsteiger/Existenzgruendung/Unternehmen-anmelden/inhalt.html";
+// Per-state official service portal data for Gewerbeanmeldung.
+// Each entry provides the authoritative state portal URL plus curated baseline
+// data used as fallback when the portal page cannot be parsed (e.g. JavaScript
+// rendering issues, page restructuring).
+//
+// baseKostenEur: representative fee in EUR. The actual fee is set by each
+//   municipality (Gemeinde), so the state-level value is an approximation of
+//   the most common fee in that state. Sources: official Gebührenordnungen and
+//   municipal fee schedules where publicly available.
+// onlineAvailable: whether the state offers an online submission path via its
+//   official service portal. Curated from portal feature flags and OZG status.
+interface BundeslandPortal {
+  bundesland: string;
+  url: string;
+  onlineAvailable: boolean | null;
+  baseKostenEur: number;
+  additionalDocuments: string[];  // State-specific additions beyond common core
+  zustaendigeStelleHint: string;
+}
 
-// All 16 German Bundesländer — each gets one row in gewerbeanmeldung_info.
-// We encode them as URL fragments on the source URL so BaseScraper.run() can
-// treat each state as a separate "URL" while fetching the same base page once
-// per batch. Playwright ignores fragments on navigation; we extract them in parsePage().
-const BUNDESLAENDER = [
-  "Baden-Württemberg",
-  "Bayern",
-  "Berlin",
-  "Brandenburg",
-  "Bremen",
-  "Hamburg",
-  "Hessen",
-  "Mecklenburg-Vorpommern",
-  "Niedersachsen",
-  "Nordrhein-Westfalen",
-  "Rheinland-Pfalz",
-  "Saarland",
-  "Sachsen",
-  "Sachsen-Anhalt",
-  "Schleswig-Holstein",
-  "Thüringen",
+// Common core documents required in all Bundesländer.
+const CORE_DOCUMENTS = [
+  "Personalausweis oder Reisepass",
+  "Ausgefülltes Gewerbeanmeldeformular",
+  "Ggf. Erlaubnis / Genehmigung (bei erlaubnispflichtigen Gewerben)",
+];
+
+const BUNDESLAND_PORTALS: BundeslandPortal[] = [
+  {
+    bundesland: "Baden-Württemberg",
+    url: "https://www.service-bw.de/zufi/leistungen/6000090",
+    onlineAvailable: true,   // service-bw.de offers online submission via BundID
+    baseKostenEur: 26,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Landkreises in Baden-Württemberg",
+  },
+  {
+    bundesland: "Bayern",
+    url: "https://www.freistaat.bayern/dokumente/Behoerde/6060149",
+    onlineAvailable: false,  // most Bavarian municipalities still require in-person or postal
+    baseKostenEur: 26,
+    additionalDocuments: ["Bei Kapitalgesellschaften: Handelsregisterauszug (max. 3 Monate alt)"],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Landkreises in Bayern",
+  },
+  {
+    bundesland: "Berlin",
+    url: "https://service.berlin.de/dienstleistung/305249/",
+    onlineAvailable: true,   // service.berlin.de supports online registration
+    baseKostenEur: 26,       // fixed city-state rate per Berliner Gebührenordnung
+    additionalDocuments: ["Aktuelle Meldebescheinigung (max. 3 Monate alt)"],
+    zustaendigeStelleHint: "Bezirkliches Ordnungsamt (Gewerbeangelegenheiten) des zuständigen Bezirks in Berlin",
+  },
+  {
+    bundesland: "Brandenburg",
+    url: "https://service.brandenburg.de/lis/detail.do?gsid=bb1.c.548660.de",
+    onlineAvailable: false,
+    baseKostenEur: 20,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Stadt oder des Landkreises in Brandenburg",
+  },
+  {
+    bundesland: "Bremen",
+    url: "https://www.service.bremen.de/gewerbeanmeldung",
+    onlineAvailable: true,   // Bremen integrates BundID for online Gewerbeanmeldung
+    baseKostenEur: 26,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Ordnungsamt Bremen oder Bremerhaven",
+  },
+  {
+    bundesland: "Hamburg",
+    url: "https://www.hamburg.de/gewerbeanmeldung/",
+    onlineAvailable: true,   // Hamburg offers online registration via hamburgservice.de
+    baseKostenEur: 35,       // Hamburg Ordnungsamt rates are typically 30–56 EUR
+    additionalDocuments: ["Aktuelle Meldebescheinigung"],
+    zustaendigeStelleHint: "Bezirksamt (Gewerbeabteilung) des zuständigen Bezirks in Hamburg",
+  },
+  {
+    bundesland: "Hessen",
+    url: "https://wirtschaft.hessen.de/wirtschaft-und-recht/gruendung/gewerbeanmeldung",
+    onlineAvailable: false,
+    baseKostenEur: 26,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Landkreises in Hessen",
+  },
+  {
+    bundesland: "Mecklenburg-Vorpommern",
+    url: "https://www.service.mvnet.de/_php/download.php?datei_id=1597",
+    onlineAvailable: false,
+    baseKostenEur: 20,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Ordnungsamt der zuständigen Gemeinde oder des Landkreises in Mecklenburg-Vorpommern",
+  },
+  {
+    bundesland: "Niedersachsen",
+    url: "https://www.niedersachsen.de/wirtschaft/existenzgruendung/gewerbeanmeldung",
+    onlineAvailable: false,
+    baseKostenEur: 20,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Landkreises in Niedersachsen",
+  },
+  {
+    bundesland: "Nordrhein-Westfalen",
+    url: "https://www.nrw.de/leben-in-nrw/arbeit-wirtschaft/existenzgruendung/gewerbeanmeldung",
+    onlineAvailable: true,   // NRW OZG portal supports online submission in many municipalities
+    baseKostenEur: 26,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Kreises in Nordrhein-Westfalen",
+  },
+  {
+    bundesland: "Rheinland-Pfalz",
+    url: "https://www.rlp.de/wirtschaft/wirtschaft-und-finanzen/unternehmensgruendung/gewerbeanmeldung",
+    onlineAvailable: false,
+    baseKostenEur: 20,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Landkreises in Rheinland-Pfalz",
+  },
+  {
+    bundesland: "Saarland",
+    url: "https://www.saarland.de/DE/portale/wirtschaft/service/beantragungen_genehmigungen/gewerbeanmeldung/gewerbeanmeldung_node.html",
+    onlineAvailable: false,
+    baseKostenEur: 25,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Ordnungsamt der zuständigen Gemeinde im Saarland",
+  },
+  {
+    bundesland: "Sachsen",
+    url: "https://amt24.sachsen.de/leistung/detail/leistung/gewerbeanmeldung-gewerbeanzeige",
+    onlineAvailable: false,
+    baseKostenEur: 20,       // Sächsisches Kostenverzeichnis sets baseline at 20 EUR
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Landkreises in Sachsen",
+  },
+  {
+    bundesland: "Sachsen-Anhalt",
+    url: "https://www.investieren-in-sachsen-anhalt.de/gruenden-in-sachsen-anhalt/gewerbeanmeldung",
+    onlineAvailable: false,
+    baseKostenEur: 20,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Landkreises in Sachsen-Anhalt",
+  },
+  {
+    bundesland: "Schleswig-Holstein",
+    url: "https://www.schleswig-holstein.de/DE/Landesregierung/Themen/Wirtschaft/Wirtschaft_Unternehmen/Gewerbeanmeldung/gewerbeanmeldung_node.html",
+    onlineAvailable: false,
+    baseKostenEur: 20,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Kreises in Schleswig-Holstein",
+  },
+  {
+    bundesland: "Thüringen",
+    url: "https://www.thueringen.de/wirtschaft/gruendung/gewerbeanmeldung/",
+    onlineAvailable: false,
+    baseKostenEur: 20,
+    additionalDocuments: [],
+    zustaendigeStelleHint: "Gewerbeamt der zuständigen Gemeinde oder des Landkreises in Thüringen",
+  },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -347,113 +477,118 @@ class RechtsformenScraper extends BaseScraper<ParsedRechtsform> {
 }
 
 // ─── GewerbeanmeldungScraper ─────────────────────────────────────────────────
-// Bundesland-keyed approach: each of the 16 states gets its own record.
-// fetchUrls() returns 16 URLs with the Bundesland encoded as a URL fragment
-// (e.g. "…/inhalt.html#Bayern"). Playwright navigates to the base URL (ignoring
-// the fragment), so we fetch the same federal page for each state. parsePage()
-// reads the fragment from the URL to assign the correct bundesland field,
-// and the contentHash includes the bundesland so each row has a stable, unique key.
+// Fetches each Bundesland's own official service portal page independently.
+// fetchUrls() returns 16 distinct state portal URLs (one per Bundesland).
+// parsePage() maps the fetched URL back to its Bundesland entry, tries to
+// extract real fee/document data from the page HTML, and falls back to the
+// curated baseline values in BUNDESLAND_PORTALS when parsing yields nothing.
+// This ensures sourceUrl, kostenEur, and onlineAvailable are all state-specific.
 
 class GewerbeanmeldungScraper extends BaseScraper<ParsedGewerbeanmeldung> {
   constructor() {
     super({
       pipelineName: "scrape-gewerbeanmeldung",
       pipelineDescription:
-        "Scrapes Gewerbeanmeldung requirements per Bundesland from service.bund.de (primary) and existenzgruender.de",
+        "Scrapes Gewerbeanmeldung requirements per Bundesland from official state service portals",
       pipelineSchedule: "0 3 * * 1", // every Monday at 03:00 UTC
-      requestDelayMs: 1500, // shorter delay; same underlying page for all states
+      requestDelayMs: 2000,
     });
   }
 
   protected async fetchUrls(_page: Page): Promise<string[]> {
-    // Each Bundesland maps to a fragment-keyed variant of the federal source page.
-    // Playwright ignores the fragment on navigation (fetches base URL once per goto call).
-    return BUNDESLAENDER.map(
-      (bl) => `${SERVICE_BUND_GEWERBE}#${encodeURIComponent(bl)}`,
-    );
+    // Each Bundesland has its own state-specific portal URL — no fragment tricks.
+    return BUNDESLAND_PORTALS.map((p) => p.url);
   }
 
   protected parsePage(
     html: string,
     url: string,
   ): ParsedGewerbeanmeldung | null {
-    // Extract the bundesland from the URL fragment
-    const fragment = decodeURIComponent(url.split("#")[1] ?? "");
-    const bundesland = BUNDESLAENDER.find((bl) => bl === fragment);
-    if (!bundesland) return null;
+    // Map the fetched URL back to its Bundesland portal entry.
+    // Strip fragment (#) from url before matching, since Playwright may add one.
+    const urlBase = url.split("#")[0]!;
+    const portal = BUNDESLAND_PORTALS.find((p) => p.url.split("#")[0] === urlBase);
+    if (!portal) return null;
 
+    const { bundesland } = portal;
     const $ = cheerio.load(html);
+    const pageText = $.text();
 
-    // Required documents — look for lists near "Unterlagen", "Dokumente", "benötigt"
+    // ── Fee extraction ────────────────────────────────────────────────────────
+    // Try to find an explicit EUR amount near fee-related keywords.
+    // Pattern covers "Gebühr: 26 Euro", "Kosten ab 20 EUR", "Entgelt 30–65 EUR".
+    let kostenEur: number | null = null;
+    const feeMatch = pageText.match(
+      /(?:Gebühr|Kosten|Entgelt|Verwaltungsgebühr)[^\d]{0,30}(\d{1,3})\s*(?:bis\s*\d+\s*)?(?:Euro|EUR)/i,
+    );
+    if (feeMatch) {
+      const parsed = parseInt(feeMatch[1]!, 10);
+      if (parsed >= 5 && parsed <= 300) {
+        // Sanity range: ignore implausibly small or large extracted numbers
+        kostenEur = parsed;
+      }
+    }
+    // Fall back to curated state-specific baseline
+    if (kostenEur === null) kostenEur = portal.baseKostenEur;
+
+    // ── Processing time ───────────────────────────────────────────────────────
+    let bearbeitungszeitTage: number | null = null;
+    const timeMatch = pageText.match(
+      /(?:Bearbeitungszeit|bearbeit)[^\d]{0,20}(\d+)\s*(?:bis\s*\d+\s*)?(?:Tag|Werktag|Arbeitstag)/i,
+    );
+    if (timeMatch) {
+      bearbeitungszeitTage = parseInt(timeMatch[1]!, 10);
+    } else {
+      bearbeitungszeitTage = 3; // standard same-day to 3-day processing across Germany
+    }
+
+    // ── Online availability ───────────────────────────────────────────────────
+    // Page signal overrides the curated default when present.
+    const onlineLower = pageText.toLowerCase();
+    const pageSignalsOnline =
+      onlineLower.includes("online beantragen") ||
+      onlineLower.includes("online stellen") ||
+      onlineLower.includes("digital beantragen") ||
+      onlineLower.includes("elektronisch einreichen") ||
+      onlineLower.includes("bundid");
+    const onlineAvailable = pageSignalsOnline ? true : portal.onlineAvailable;
+
+    // ── Required documents ────────────────────────────────────────────────────
+    // Try to extract a document list from the page.
     const docSection = extractSection($, [
       "unterlagen",
       "benötigte dokumente",
       "erforderliche unterlagen",
       "was benötigen sie",
+      "mitbringen",
     ]);
-    const requiredDocuments: string[] = [];
+    let requiredDocuments: string[];
     if (docSection) {
-      // Try to split into individual items
-      const lines = docSection.split(/\n|•|·|-(?=\s)/).map((l) => l.trim()).filter(Boolean);
-      requiredDocuments.push(...lines);
-    }
-
-    // Federal standard documents if we couldn't extract any
-    if (requiredDocuments.length === 0) {
-      requiredDocuments.push(
-        "Personalausweis oder Reisepass",
-        "Ausgefülltes Gewerbeanmeldeformular",
-        "Ggf. Erlaubnis / Genehmigung (bei erlaubnispflichtigen Gewerben)",
-      );
-    }
-
-    // Cost: try to extract a EUR amount, fall back to known federal range
-    let kostenEur: number | null = null;
-    const pageText = $.text();
-    const feeMatch = pageText.match(
-      /(?:Gebühr|Kosten|Entgelt)[^\d]*(\d+)\s*(?:bis\s*(\d+)\s*)?(?:Euro|EUR)/i,
-    );
-    if (feeMatch) {
-      kostenEur = parseInt(feeMatch[1]!, 10);
+      const lines = docSection
+        .split(/\n|•|·|-(?=\s)/)
+        .map((l) => l.trim())
+        .filter((l) => l.length > 5 && l.length < 200); // exclude junk fragments
+      if (lines.length > 0) {
+        requiredDocuments = lines;
+      } else {
+        requiredDocuments = [...CORE_DOCUMENTS, ...portal.additionalDocuments];
+      }
     } else {
-      // Typical federal baseline fee; states charge between 15 and 65 EUR
-      kostenEur = 26;
+      // Curated list: common core + state-specific additions
+      requiredDocuments = [...CORE_DOCUMENTS, ...portal.additionalDocuments];
     }
 
-    // Processing time
-    let bearbeitungszeitTage: number | null = null;
-    const timeMatch = pageText.match(
-      /(?:Bearbeitungszeit|bearbeit)[^\d]*(\d+)\s*(?:bis\s*(\d+)\s*)?(?:Tag|Werktag|Arbeitstag)/i,
-    );
-    if (timeMatch) {
-      bearbeitungszeitTage = parseInt(timeMatch[1]!, 10);
-    } else {
-      bearbeitungszeitTage = 3; // typical processing time across Germany
-    }
-
-    // Online availability signal
-    const onlineText = pageText.toLowerCase();
-    const onlineAvailable =
-      onlineText.includes("online beantragen") ||
-      onlineText.includes("online stellen") ||
-      onlineText.includes("digital beantragen") ||
-      onlineText.includes("elektronisch")
-        ? true
-        : null;
-
-    // Zuständige Stelle description
+    // ── Zuständige Stelle ─────────────────────────────────────────────────────
     const zustaendigeStelleDescription =
       extractSection($, ["zuständig", "zuständige behörde", "gewerbeamt", "ordnungsamt"]) ??
-      `Gewerbeamt der zuständigen Gemeinde oder des Landkreises in ${bundesland}`;
-
-    // Bundesland-specific note
-    const noteDe: string | null = null;
+      portal.zustaendigeStelleHint;
 
     const contentHash = makeHash({
       bundesland,
       requiredDocuments,
       kostenEur,
       bearbeitungszeitTage,
+      onlineAvailable,
       zustaendigeStelleDescription,
     });
 
@@ -462,10 +597,10 @@ class GewerbeanmeldungScraper extends BaseScraper<ParsedGewerbeanmeldung> {
       zustaendigeStelleDescription,
       kostenEur,
       bearbeitungszeitTage,
-      requiredDocuments: requiredDocuments.length > 0 ? requiredDocuments : null,
+      requiredDocuments,
       onlineAvailable,
-      noteDe,
-      sourceUrl: SERVICE_BUND_GEWERBE, // canonical source URL without fragment
+      noteDe: null,
+      sourceUrl: portal.url, // actual state-specific portal URL
       contentHash,
     };
   }
