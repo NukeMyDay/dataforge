@@ -3,6 +3,11 @@ import Layout from "@/components/Layout.js";
 import HomePage from "@/pages/Home.js";
 import GruendungPage from "@/pages/Gruendung.js";
 import FoerderungPage from "@/pages/Foerderung.js";
+import FoerderungDetailPage from "@/pages/FoerderungDetail.js";
+import RechtsformenList from "@/pages/RechtsformenList.js";
+import RechtsformDetail from "@/pages/RechtsformDetail.js";
+import GewerbeanmeldungPage from "@/pages/GewerbeanmeldungPage.js";
+import GewerbeanmeldungDetail from "@/pages/GewerbeanmeldungDetail.js";
 import ResearchPage from "@/pages/Research.js";
 import ResearchDataProvenancePage from "@/pages/ResearchDataProvenance.js";
 import ResearchPrimarySourceVerificationPage from "@/pages/ResearchPrimarySourceVerification.js";
@@ -24,6 +29,11 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/gruendung" element={<GruendungPage />} />
         <Route path="/gruendung/foerderung" element={<FoerderungPage />} />
+        <Route path="/gruendung/foerderung/:slug" element={<FoerderungDetailPage />} />
+        <Route path="/gruendung/rechtsformen" element={<RechtsformenList />} />
+        <Route path="/gruendung/rechtsformen/:slug" element={<RechtsformDetail />} />
+        <Route path="/gruendung/gewerbeanmeldung" element={<GewerbeanmeldungPage />} />
+        <Route path="/gruendung/gewerbeanmeldung/:bundesland" element={<GewerbeanmeldungDetail />} />
         <Route path="/research" element={<ResearchPage />} />
         <Route path="/research/data-provenance-freshness" element={<ResearchDataProvenancePage />} />
         <Route path="/research/primary-source-verification" element={<ResearchPrimarySourceVerificationPage />} />

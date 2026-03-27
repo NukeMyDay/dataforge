@@ -41,14 +41,21 @@ export interface FundingProgram {
   slug: string;
   titleDe: string;
   titleEn: string | null;
-  description: string | null;
-  type: string | null;
-  region: string | null;
-  targetGroup: string | null;
-  fundingAmount: string | null;
-  fundingAmountMax: number | null;
-  deadline: string | null;
-  provider: string | null;
+  fundingType: string | null;
+  fundingArea: string | null;
+  fundingRegion: string | null;
+  level: string | null;
+  state: string | null;
+  category: string | null;
+  eligibleApplicants: string | null;
+  summaryDe: string | null;
+  descriptionDe: string | null;
+  legalRequirementsDe: string | null;
+  directiveDe: string | null;
+  fundingAmountInfo: string | null;
+  applicationProcess: string | null;
+  deadlineInfo: string | null;
+  contactInfo: string | null;
   sourceUrl: string | null;
   isActive: boolean;
   createdAt: string;
@@ -95,6 +102,39 @@ export interface AssistantResponse {
   };
 }
 
+// Rechtsformen
+export interface Rechtsform {
+  id: number;
+  name: string;
+  slug: string;
+  fullName: string | null;
+  minCapitalEur: number | null;
+  liabilityType: string | null;
+  notaryRequired: boolean | null;
+  tradeRegisterRequired: boolean | null;
+  founderCount: string | null;
+  descriptionDe: string | null;
+  taxNotesDe: string | null;
+  foundingCostsDe: string | null;
+  sourceUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Gewerbeanmeldung
+export interface GewerbeanmeldungInfo {
+  id: number;
+  bundesland: string;
+  zustaendigeStelleDescription: string | null;
+  kostenEur: number | null;
+  bearbeitungszeitTage: number | null;
+  requiredDocuments: string[] | null;
+  onlineAvailable: boolean | null;
+  noteDe: string | null;
+  sourceUrl: string;
+  createdAt: string;
+}
+
 export const api = {
   stats: {
     get: () => request<StatsResponse>("/v1/stats"),
@@ -116,5 +156,15 @@ export const api = {
     },
     get: (slug: string) =>
       request<DetailResponse<FundingProgram>>(`/v1/funding/${slug}`),
+  },
+  rechtsformen: {
+    list: () => request<ListResponse<Rechtsform>>("/v1/rechtsformen"),
+    get: (slug: string) =>
+      request<DetailResponse<Rechtsform>>(`/v1/rechtsformen/${slug}`),
+  },
+  gewerbeanmeldung: {
+    list: () => request<ListResponse<GewerbeanmeldungInfo>>("/v1/gewerbeanmeldung"),
+    get: (bundesland: string) =>
+      request<DetailResponse<GewerbeanmeldungInfo>>(`/v1/gewerbeanmeldung/${bundesland}`),
   },
 };

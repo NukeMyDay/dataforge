@@ -42,48 +42,53 @@ function FundingCard({ program }: { program: FundingProgram }) {
     <div className="card border border-gray-200 hover:border-brand-300 hover:shadow-md transition-all">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 mb-1 leading-snug">{program.titleDe}</h3>
-          {program.provider && (
-            <p className="text-xs text-gray-500 mb-2">{program.provider}</p>
-          )}
-          {program.description && (
-            <p className="text-sm text-gray-600 line-clamp-2">{program.description}</p>
+          <Link
+            to={`/gruendung/foerderung/${program.slug}`}
+            className="font-semibold text-gray-900 hover:text-brand-700 mb-1 leading-snug block"
+          >
+            {program.titleDe}
+          </Link>
+          {program.summaryDe && (
+            <p className="text-sm text-gray-600 line-clamp-2 mt-1">{program.summaryDe}</p>
           )}
         </div>
-        {program.type && (
-          <span className="badge bg-blue-50 text-blue-700 shrink-0">{program.type}</span>
+        {program.fundingType && (
+          <span className="badge bg-blue-50 text-blue-700 shrink-0">{program.fundingType}</span>
         )}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 items-center">
-        {program.region && (
-          <span className="badge bg-gray-100 text-gray-600">{program.region}</span>
+        {program.fundingRegion && (
+          <span className="badge bg-gray-100 text-gray-600">{program.fundingRegion}</span>
         )}
-        {program.targetGroup && (
-          <span className="badge bg-violet-50 text-violet-700">{program.targetGroup}</span>
+        {program.level && (
+          <span className="badge bg-violet-50 text-violet-700">{program.level}</span>
         )}
-        {program.fundingAmount && (
-          <span className="badge bg-emerald-50 text-emerald-700">{program.fundingAmount}</span>
-        )}
-        {program.deadline && (
-          <span className="text-xs text-gray-400 ml-auto">
-            Frist: {new Date(program.deadline).toLocaleDateString("de-DE")}
+        {program.fundingAmountInfo && (
+          <span className="badge bg-emerald-50 text-emerald-700 max-w-[200px] truncate">
+            {program.fundingAmountInfo}
           </span>
         )}
       </div>
 
-      {program.sourceUrl && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
+      <div className="mt-3 pt-3 border-t border-gray-100 flex gap-4">
+        <Link
+          to={`/gruendung/foerderung/${program.slug}`}
+          className="text-sm text-brand-600 hover:text-brand-800 font-medium"
+        >
+          Details ansehen →
+        </Link>
+        {program.sourceUrl && (
           <a
             href={program.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-brand-600 hover:text-brand-800 font-medium"
+            className="text-sm text-gray-500 hover:text-gray-800"
           >
-            Zum Programm →
+            Zur Originalquelle ↗
           </a>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
